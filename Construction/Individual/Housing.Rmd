@@ -1,0 +1,225 @@
+---
+title: "Housing"
+author: "Shozen Dan"
+date: "9/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r}
+house.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2018.dta")
+psu <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/PSU.dta") %>% 
+  dplyr::select(communityID,province_eng, city_eng, urban_nbs)
+```
+
+```{r}
+# proportion of households using natural gas as cooking fuel
+mean(house.2011$i022 == 4, na.rm = T)
+mean(house.2013$i022 == 4, na.rm = T)
+mean(house.2015$i022 == 4, na.rm = T)
+mean(house.2018$i022_w4 == 4, na.rm = T)
+```
+
+```{r}
+# proportion of households with running water
+mean(house.2011$i017 == 1, na.rm = T)
+mean(house.2013$i017 == 1, na.rm = T)
+mean(house.2015$i017 == 1, na.rm = T)
+mean(house.2018$i017 == 1, na.rm = T)
+```
+
+```{r}
+# proportion of households with inhouse shower of bath
+mean(house.2011$i018 == 1, na.rm = T)
+mean(house.2013$i018 == 1, na.rm = T)
+mean(house.2015$i018 == 1, na.rm = T)
+mean(house.2018$i018 == 1, na.rm = T)
+```
+
+```{r}
+# proportion of households with flushable toilets
+mean(house.2011$i012_3 >= 1, na.rm = T)
+mean(house.2013$i012_3 >= 1, na.rm = T)
+mean(house.2015$i012_3 >= 1, na.rm = T)
+mean(house.2018$i012_3 >= 1, na.rm = T)
+```
+
+```{r}
+# proportion of households made from concrete and steel
+mean(house.2011$i004 == 1, na.rm = T)
+mean(house.2013$i004 == 1, na.rm = T)
+mean(house.2015$i004 == 1, na.rm = T)
+mean(house.2018$i004 == 1, na.rm = T)
+```
+
+```{r, message=FALSE}
+house.score.2011 <- house.2011 %>% 
+  select(communityID, i004, i012_3, i015, i017, i018, i019, i022) %>%
+  mutate(
+    concrete_house = ifelse(i004 == 1, 1, 0),
+    cooking_gas = ifelse(i022 == 2 | i022 == 4, 1, 0),
+    flushable_toilet = ifelse(i012_3 == 1 & i015 == 1, 1, 0),
+    inhouse_bath = ifelse(i018 == 1 | i018 == 2, 1, 0)
+  ) %>% 
+  group_by(communityID) %>%
+  summarise(
+    prop_concrete_house = mean(concrete_house, na.rm = T),
+    prop_running_water = mean(i017 == 1, na.rm = T),
+    prop_cooking_gas = mean(cooking_gas, na.rm = T),
+    prop_flushable_toilet = mean(flushable_toilet, na.rm = T),
+    prop_inhouse_bath = mean(inhouse_bath, na.rm = T)
+  ) %>% 
+  mutate(
+    urban_score_house = 10*(prop_concrete_house + prop_running_water + prop_cooking_gas + prop_flushable_toilet + prop_inhouse_bath)/5
+  ) %>% 
+  select(communityID, urban_score_house)
+
+house.score.2013 <- house.2013 %>% 
+  select(communityID, i004, i012_3, i015, i017, i018, i019, i022) %>%
+  mutate(
+    concrete_house = ifelse(i004 == 1, 1, 0),
+    cooking_gas = ifelse(i022 == 2 | i022 == 4, 1, 0),
+    flushable_toilet = ifelse(i012_3 == 1 & i015 == 1, 1, 0),
+    inhouse_bath = ifelse(i018 == 1 | i018 == 2, 1, 0)
+  ) %>% 
+  group_by(communityID) %>%
+  summarise(
+    prop_concrete_house = mean(concrete_house, na.rm = T),
+    prop_running_water = mean(i017 == 1, na.rm = T),
+    prop_cooking_gas = mean(cooking_gas, na.rm = T),
+    prop_flushable_toilet = mean(flushable_toilet, na.rm = T),
+    prop_inhouse_bath = mean(inhouse_bath, na.rm = T)
+  ) %>% 
+  mutate(
+    urban_score_house = 10*(prop_concrete_house + prop_running_water + prop_cooking_gas + prop_flushable_toilet + prop_inhouse_bath)/5
+  ) %>% 
+  select(communityID, urban_score_house)
+
+house.score.2015 <- house.2015 %>% 
+  select(communityID, i004, i012_3, i015, i017, i018, i019, i022) %>%
+  mutate(
+    concrete_house = ifelse(i004 == 1, 1, 0),
+    cooking_gas = ifelse(i022 == 2 | i022 == 4, 1, 0),
+    flushable_toilet = ifelse(i012_3 == 1 & i015 == 1, 1, 0),
+    inhouse_bath = ifelse(i018 == 1 | i018 == 2, 1, 0)
+  ) %>% 
+  group_by(communityID) %>%
+  summarise(
+    prop_concrete_house = mean(concrete_house, na.rm = T),
+    prop_running_water = mean(i017 == 1, na.rm = T),
+    prop_cooking_gas = mean(cooking_gas, na.rm = T),
+    prop_flushable_toilet = mean(flushable_toilet, na.rm = T),
+    prop_inhouse_bath = mean(inhouse_bath, na.rm = T)
+  ) %>% 
+  mutate(
+    urban_score_house = 10*(prop_concrete_house + prop_running_water + prop_cooking_gas + prop_flushable_toilet + prop_inhouse_bath)/5
+  ) %>% 
+  select(communityID, urban_score_house)
+
+house.score.2018 <- house.2018 %>% 
+  select(communityID, i004, i012_3, i015, i017, i018, i019, i022_w4) %>%
+  mutate(
+    concrete_house = ifelse(i004 == 1, 1, 0),
+    cooking_gas = ifelse(i022_w4 == 2 | i022_w4 == 4, 1, 0),
+    flushable_toilet = ifelse(i012_3 == 1 & i015 == 1, 1, 0),
+    inhouse_bath = ifelse(i018 == 1 | i018 == 2, 1, 0)
+  ) %>% 
+  group_by(communityID) %>%
+  summarise(
+    prop_concrete_house = mean(concrete_house, na.rm = T),
+    prop_running_water = mean(i017 == 1, na.rm = T),
+    prop_cooking_gas = mean(cooking_gas, na.rm = T),
+    prop_flushable_toilet = mean(flushable_toilet, na.rm = T),
+    prop_inhouse_bath = mean(inhouse_bath, na.rm = T)
+  ) %>% 
+  mutate(
+    urban_score_house = 10*(prop_concrete_house + prop_running_water + prop_cooking_gas + prop_flushable_toilet + prop_inhouse_bath)/5
+  ) %>% 
+  select(communityID, urban_score_house)
+```
+
+## Imputation
+```{r, imputation}
+# check for NAs
+summary(house.score.2011$urban_score_house)
+summary(house.score.2013$urban_score_house)
+summary(house.score.2015$urban_score_house)
+summary(house.score.2018$urban_score_house)
+
+# Impute 2015
+house.na.communityID <- house.score.2015 %>% filter(is.na(urban_score_house)) %>% pull(communityID)
+house.score.proxy <- house.score.2015 %>% left_join(psu, by="communityID") %>% group_by(city_eng) %>% summarise(score = mean(urban_score_house, na.rm = T))
+for(i in 1:length(house.na.communityID)){
+  city <- house.score.2015 %>% 
+    left_join(psu, by="communityID") %>% 
+    filter(communityID == house.na.communityID[i]) %>% 
+    pull(city_eng)
+  
+  score <- house.score.proxy %>% 
+    filter(city_eng == city) %>% 
+    pull(score)
+  
+  house.score.2015[house.score.2015$communityID == house.na.communityID[i], "urban_score_house"] <- score
+}
+summary(house.score.2015$urban_score_house)
+
+# Impute 2018
+house.na.communityID <- house.score.2018 %>% filter(is.na(urban_score_house)) %>% pull(communityID)
+house.score.proxy <- house.score.2018 %>% left_join(psu, by="communityID") %>% group_by(city_eng) %>% summarise(score = mean(urban_score_house, na.rm = T))
+for(i in 1:length(house.na.communityID)){
+  city <- house.score.2018 %>% 
+    left_join(psu, by="communityID") %>% 
+    filter(communityID == house.na.communityID[i]) %>% 
+    pull(city_eng)
+  
+  score <- house.score.proxy %>% 
+    filter(city_eng == city) %>% 
+    pull(score)
+  
+  house.score.2018[house.score.2018$communityID == house.na.communityID[i], "urban_score_house"] <- score
+}
+summary(house.score.2018$urban_score_house)
+
+house.score.2018[is.na(house.score.2018$urban_score_house), "urban_score_house"] <- house.score.2015 %>% 
+  left_join(psu, by="communityID") %>% 
+  filter(city_eng == "Jiamusi") %>% 
+  pull(urban_score_house)
+
+summary(house.score.2018$urban_score_house)
+```
+
+```{r}
+urban.score.house <- rbind(
+  mutate(house.score.2011, year="2011"),
+  mutate(house.score.2013, year="2013"),
+  mutate(house.score.2015, year="2015"),
+  mutate(house.score.2018, year="2018")
+)
+
+ggplot(urban.score.house, aes(x = urban_score_house)) + 
+  geom_density(aes(fill = year), alpha=0.7) + 
+  scale_x_continuous(breaks = seq(0,10,1)) +
+  labs(
+    title = "CHARLS Urbanicity Index",
+    subtitle = "Housing",
+    x = "Score",
+    y = "Density"
+  ) + 
+  theme_light()
+```
+
+```{r}
+write_csv(urban.score.house, "score/housing.csv")
+```
+

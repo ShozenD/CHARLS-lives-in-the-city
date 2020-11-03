@@ -1,0 +1,149 @@
+---
+title: "CHNS Comparison"
+author: "Shozen Dan"
+date: "10/13/2020"
+output: html_document
+---
+
+```{r message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r message=FALSE}
+chns <- read_sas('~/Downloads/Master_UrbanIndex_201804/urban_11.sas7bdat')
+psu <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/PSU.dta") %>% 
+  dplyr::select(communityID, province_eng, city_eng, urban_nbs)
+charls <- read_csv('score/urbanicity.csv')
+```
+
+```{r}
+chns <- chns %>% 
+  filter(wave > 2010) %>% 
+  mutate(
+    province_eng = case_when(
+      T1 == 11 ~ "Beijing",
+      T1 == 21 ~ "Liaoning",
+      T1 == 23 ~ "Heilongjiang",
+      T1 == 31 ~ "Shanghai",
+      T1 == 32 ~ "Jiangsu",
+      T1 == 37 ~ "Shandong",
+      T1 == 41 ~ "Henan",
+      T1 == 42 ~ "Hubei",
+      T1 == 43 ~ "Hunan",
+      T1 == 45 ~ "Guangxi",
+      T1 == 52 ~ "Guizhou",
+      T1 == 55 ~ "Chongqing"
+    )
+  )
+```
+
+```{r message=FALSE}
+chns_urban <- chns %>% 
+  group_by(wave, province_eng) %>% 
+  summarise(
+    chns_score = mean(index)
+  )
+
+charls_urban <- charls %>% 
+  group_by(year, province_eng) %>% 
+  summarise(
+    charls_score = mean(urban_score)
+  )
+
+urban_avg <- left_join(chns_urban, charls_urban, by = c("province_eng"="province_eng", "wave"="year"))
+```
+
+```{r}
+ggplot(urban_avg, aes(x=chns_score, y=charls_score)) + 
+  geom_point(aes(color=factor(wave))) + 
+  geom_smooth(method = lm, se=F) + 
+  ggrepel::geom_text_repel(aes(label=province_eng)) +
+  theme_light() + 
+  labs(
+    title = "CHNS and CHARLS Scale Comparison",
+    subtitle = "Unadjusted for difference in sampling scheme",
+    x = "CHNS Urbanicity Score",
+    y = "CHARLS Urbanicity Score"
+  )
+```
+Compared to CHNS, CHARLS overestimates the urbanicity of Chonqing and underestimates the urbanicity of Heilongjiang and Jiangsu. This is due to the fact that the two surveys have different sampling schemes. In order to compare them fairly we need to adjust for this.  
+
+```{r}
+cor.test(urban_avg$chns_score, urban_avg$charls_score)
+```
+```{r}
+chns_weights <- chns %>% 
+  group_by(province_eng) %>% 
+  mutate(T2 = ifelse(T2 == 1, 1, 0)) %>%
+  summarise(chns_weights = mean(T2))
+```
+
+```{r}
+urban_avg <- urban_avg %>%
+  left_join(chns_weights, by=c("province_eng"="province_eng"))
+
+urban_avg
+```
+
+## Bootstrap
+```{r}
+simulatedSamplingScore <- function(year, province_eng, r){
+  # get CHNS weight
+  chns.weight <- urban_avg$chns_weights[urban_avg$wave == year & urban_avg$province_eng == province_eng] 
+  
+  # get vector of CHARLS scores and urban flag
+  charls.score <- charls$urban_score[charls$year == year & charls$province_eng == province_eng]
+  charls.urban.flags <- charls$urban_nbs[charls$year == year & charls$province_eng == province_eng]
+  
+  # get number of communities and the proportion of urban
+  n.communities <- length(charls.score)
+  prop.urban <- mean(charls.urban.flags)
+  n.urban <- n.communities * prop.urban
+  n.rural <- n.communities - n.urban
+  
+  # create vector of weights
+  sampling.prob <- map(charls.urban.flags, ~{ifelse(. == 1, chns.weight/n.urban, chns.weight/n.rural)})
+  
+  # get vector of CHARLS scores
+  charls.score <- charls$urban_score[charls$year == year & charls$province_eng == province_eng]
+  
+  score <- mean(sample(charls.score, r, replace = TRUE, prob = sampling.prob))
+  
+  return(score)
+}
+```
+
+```{r}
+simulated.scores <- map2_dbl(urban_avg$wave, urban_avg$province_eng, simulatedSamplingScore, 10000)
+urban_avg$bootstrap_scores <- simulated.scores
+urban_avg
+```
+
+```{r}
+ggplot(urban_avg, aes(x=chns_score, y=bootstrap_scores)) + 
+  geom_point(aes(color=factor(wave))) + 
+  geom_smooth(method = lm, se=F) + 
+  ggrepel::geom_text_repel(aes(label=province_eng)) +
+  theme_light() + 
+  labs(
+    title = "CHNS and CHARLS Scale Comparison",
+    subtitle = "Adjusting for difference in sampling scheme",
+    x = "CHNS Urbanicity Score",
+    y = "CHARLS Urbanicity Score"
+  )
+```
+```{r}
+cor.test(urban_avg$chns_score, urban_avg$bootstrap_scores)
+cor.test(urban_avg$chns_score, urban_avg$bootstrap_scores, method = "spearman")
+```
+```{r}
+reg <- lm(chns_score ~ bootstrap_scores, urban_avg)
+summary(reg)
+```
+
+
+
+
+
+

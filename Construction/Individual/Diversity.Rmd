@@ -1,0 +1,208 @@
+---
+title: "Diversity"
+author: "Shozen Dan"
+date: "10/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(haven)
+```
+
+```{r}
+income.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2011.dta")
+income.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2013.dta")
+income.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2015.dta")
+income.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2018.dta")
+```
+
+```{r, message=FALSE}
+div.2011 <- income.2011 %>% 
+  select(communityID, ge004, ge006, ge007, starts_with("ge009")) %>% 
+  mutate(
+    ge004 = ifelse(ge004 == 0, 1, ge004),
+    ge006 = replace_na(ge006, 0),
+    ge007 = replace_na(ge007, 0),
+    food_expence = 4*(ge006 + ge007)/ge004,
+    ge009_1 = case_when(ge009_1 < 0 ~ 0, TRUE ~ ge009_1),
+    ge009_2 = case_when(ge009_2 < 0 ~ 0, TRUE ~ ge009_2),
+    ge009_3 = case_when(ge009_3 < 0 ~ 0, TRUE ~ ge009_3),
+    ge009_4 = case_when(ge009_4 < 0 ~ 0, TRUE ~ ge009_4),
+    ge009_5 = case_when(ge009_5 < 0 ~ 0, TRUE ~ ge009_5),
+    ge009_6 = case_when(ge009_6 < 0 ~ 0, TRUE ~ ge009_6),
+    ge009_7 = case_when(ge009_7 < 0 ~ 0, TRUE ~ ge009_7)
+  ) %>%
+  filter(food_expence != Inf) %>% 
+  mutate(
+    monthly_PCE = food_expence + ge009_1 + ge009_2 + ge009_3 + ge009_4 + ge009_5 + ge009_6 + ge009_7,
+    log_monthly_PCE = log(monthly_PCE + 1)
+  ) %>%
+  group_by(communityID) %>% 
+  summarise(
+    urban_score_div = var(monthly_PCE, na.rm = T)/1000
+  ) %>%
+  mutate(
+    urban_score_div = case_when(
+      urban_score_div < 20 ~ 1,
+      urban_score_div < 90 ~ 2,
+      urban_score_div < 400 ~ 3,
+      urban_score_div < 1800 ~ 4,
+      urban_score_div < 8100 ~ 5,
+      urban_score_div < 36300 ~ 6,
+      urban_score_div < 162750 ~ 7,
+      urban_score_div < 729400 ~ 8,
+      urban_score_div < 3269000 ~ 9,
+      urban_score_div > 3269000 ~ 10
+    )
+  ) %>% 
+  select(communityID, urban_score_div)
+
+div.2013 <- income.2013 %>% 
+  select(communityID, ge004, ge006, ge007, starts_with("ge009")) %>% 
+  mutate(
+    ge004 = ifelse(ge004 == 0, 1, ge004),
+    ge006 = replace_na(ge006, 0),
+    ge007 = replace_na(ge007, 0),
+    food_expence = 4*(ge006 + ge007)/ge004,
+    ge009_1 = case_when(ge009_1 < 0 ~ 0, TRUE ~ ge009_1),
+    ge009_2 = case_when(ge009_2 < 0 ~ 0, TRUE ~ ge009_2),
+    ge009_3 = case_when(ge009_3 < 0 ~ 0, TRUE ~ ge009_3),
+    ge009_4 = case_when(ge009_4 < 0 ~ 0, TRUE ~ ge009_4),
+    ge009_5 = case_when(ge009_5 < 0 ~ 0, TRUE ~ ge009_5),
+    ge009_6 = case_when(ge009_6 < 0 ~ 0, TRUE ~ ge009_6),
+    ge009_7 = case_when(ge009_7 < 0 ~ 0, TRUE ~ ge009_7)
+  ) %>%
+  filter(food_expence != Inf) %>% 
+  mutate(
+    monthly_PCE = food_expence + ge009_1 + ge009_2 + ge009_3 + ge009_4 + ge009_5 + ge009_6 + ge009_7,
+    log_monthly_PCE = log(monthly_PCE + 1)
+  ) %>%
+  group_by(communityID) %>% 
+  summarise(
+    urban_score_div = var(monthly_PCE, na.rm = T)/1000
+  ) %>% 
+  mutate(
+    urban_score_div = case_when(
+      urban_score_div < 20 ~ 1,
+      urban_score_div < 90 ~ 2,
+      urban_score_div < 400 ~ 3,
+      urban_score_div < 1800 ~ 4,
+      urban_score_div < 8100 ~ 5,
+      urban_score_div < 36300 ~ 6,
+      urban_score_div < 162750 ~ 7,
+      urban_score_div < 729400 ~ 8,
+      urban_score_div < 3269000 ~ 9,
+      urban_score_div > 3269000 ~ 10
+    )
+  ) %>% 
+  select(communityID, urban_score_div)
+
+div.2015 <- income.2015 %>% 
+  select(communityID, ge004, ge006, ge007, starts_with("ge009")) %>% 
+  mutate(
+    ge004 = ifelse(ge004 == 0, 1, ge004),
+    ge006 = replace_na(ge006, 0),
+    ge007 = replace_na(ge007, 0),
+    food_expence = 4*(ge006 + ge007)/ge004,
+    ge009_1 = case_when(ge009_1 < 0 ~ 0, TRUE ~ ge009_1),
+    ge009_2 = case_when(ge009_2 < 0 ~ 0, TRUE ~ ge009_2),
+    ge009_3 = case_when(ge009_3 < 0 ~ 0, TRUE ~ ge009_3),
+    ge009_4 = case_when(ge009_4 < 0 ~ 0, TRUE ~ ge009_4),
+    ge009_5 = case_when(ge009_5 < 0 ~ 0, TRUE ~ ge009_5),
+    ge009_6 = case_when(ge009_6 < 0 ~ 0, TRUE ~ ge009_6),
+    ge009_7 = case_when(ge009_7 < 0 ~ 0, TRUE ~ ge009_7)
+  ) %>%
+  filter(food_expence != Inf) %>% 
+  mutate(
+    monthly_PCE = food_expence + ge009_1 + ge009_2 + ge009_3 + ge009_4 + ge009_5 + ge009_6 + ge009_7,
+    log_monthly_PCE = log(monthly_PCE + 1)
+  ) %>%
+  group_by(communityID) %>% 
+  summarise(
+    urban_score_div = var(monthly_PCE, na.rm = T)/1000
+  ) %>% 
+  mutate(
+    urban_score_div = case_when(
+      urban_score_div < 20 ~ 1,
+      urban_score_div < 90 ~ 2,
+      urban_score_div < 400 ~ 3,
+      urban_score_div < 1800 ~ 4,
+      urban_score_div < 8100 ~ 5,
+      urban_score_div < 36300 ~ 6,
+      urban_score_div < 162750 ~ 7,
+      urban_score_div < 729400 ~ 8,
+      urban_score_div < 3269000 ~ 9,
+      urban_score_div > 3269000 ~ 10
+    )
+  ) %>% 
+  select(communityID, urban_score_div)
+
+div.2018 <- income.2018 %>% 
+  select(communityID, ge004, ge006_w4, ge007_w4, starts_with("ge009")) %>% 
+  mutate(
+    ge004 = ifelse(ge004 == 0, 1, ge004),
+    ge006 = replace_na(ge006_w4, 0),
+    ge007 = replace_na(ge007_w4, 0),
+    food_expence = 4*(ge006_w4 + ge007_w4)/ge004,
+    ge009_1 = case_when(ge009_1 < 0 ~ 0, TRUE ~ ge009_1),
+    ge009_2 = case_when(ge009_2 < 0 ~ 0, TRUE ~ ge009_2),
+    ge009_3 = case_when(ge009_3 < 0 ~ 0, TRUE ~ ge009_3),
+    ge009_4 = case_when(ge009_4 < 0 ~ 0, TRUE ~ ge009_4),
+    ge009_5 = case_when(ge009_5 < 0 ~ 0, TRUE ~ ge009_5),
+    ge009_6 = case_when(ge009_6 < 0 ~ 0, TRUE ~ ge009_6),
+    ge009_7 = case_when(ge009_7 < 0 ~ 0, TRUE ~ ge009_7)
+  ) %>%
+  filter(food_expence != Inf) %>% 
+  mutate(
+    monthly_PCE = food_expence + ge009_1 + ge009_2 + ge009_3 + ge009_4 + ge009_5 + ge009_6 + ge009_7,
+    log_monthly_PCE = log(monthly_PCE + 1)
+  ) %>%
+  group_by(communityID) %>% 
+  summarise(
+    urban_score_div = var(monthly_PCE, na.rm = T)/1000
+  ) %>% 
+  mutate(
+    urban_score_div = case_when(
+      urban_score_div < 20 ~ 1,
+      urban_score_div < 90 ~ 2,
+      urban_score_div < 400 ~ 3,
+      urban_score_div < 1800 ~ 4,
+      urban_score_div < 8100 ~ 5,
+      urban_score_div < 36300 ~ 6,
+      urban_score_div < 162750 ~ 7,
+      urban_score_div < 729400 ~ 8,
+      urban_score_div < 3269000 ~ 9,
+      urban_score_div > 3269000 ~ 10
+    )
+  ) %>% 
+  select(communityID, urban_score_div)
+```
+
+```{r}
+urban.score.div <- rbind(
+  mutate(div.2011, year="2011"),
+  mutate(div.2013, year="2013"),
+  mutate(div.2015, year="2015"),
+  mutate(div.2018, year="2018")
+)
+
+ggplot(urban.score.div, aes(x=urban_score_div)) + 
+  geom_density(aes(fill=year), alpha=0.7, adjust=2) + 
+  scale_x_continuous(breaks = seq(0,10,1)) +
+  labs(
+    title = "CHARLS Urbanicity Index",
+    subtitle = "Diversity",
+    x = "Score",
+    y = "Density"
+  ) + 
+  theme_light()
+```
+```{r}
+write_csv(urban.score.div, "score/diversity.csv")
+```
+

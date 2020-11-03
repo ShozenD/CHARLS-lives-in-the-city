@@ -1,0 +1,63 @@
+---
+title: "External Validation"
+author: "Shozen Dan"
+date: "10/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r, message=FALSE}
+health.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Health_Status_and_Functioning_2011.dta")
+health.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Health_Status_and_Functioning_2013.dta")
+health.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Health_Status_and_Functioning_2015.dta")
+health.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Health_Status_and_Functioning_2018.dta")
+urban.score <- read_csv("score/urbanicity.csv")
+```
+
+```{r}
+quintile.2011 <- urban.score %>% filter(year == 2011) %>% pull(urban_score) %>% quantile(prob = seq(0,1, 0.2))
+hypertension.2011 <- health.2011 %>%
+  left_join(filter(urban.score, year == 2011) ,by="communityID") %>% 
+  select(communityID, da007_1_, urban_score) %>% 
+  mutate(
+    hypertension = ifelse(da007_1_ == 1, 1, 0), 
+    urban_score_quintile = case_when(
+      urban_score < quintile.2011[2] ~ "lowest", 
+      urban_score < quintile.2011[3] ~ "second",
+      urban_score < quintile.2011[4] ~ "third",
+      urban_score < quintile.2011[5] ~ "fourth",
+      urban_score <= quintile.2011[6] ~ "highest"
+    )
+  )
+hypertension.2011$urban_score_quintile <- factor(hypertension.2011$urban_score_quintile, levels = c("lowest", "second", "third", "fourth", "highest"))
+
+diabetes.2011 <- health.2011 %>%
+  left_join(filter(urban.score, year == 2011) ,by="communityID") %>% 
+  select(communityID, da007_3_, urban_score) %>% 
+  mutate(
+    diabetes = ifelse(da007_3_ == 1, 1, 0), 
+    urban_score_quintile = case_when(
+      urban_score < quintile.2011[2] ~ "lowest", 
+      urban_score < quintile.2011[3] ~ "second",
+      urban_score < quintile.2011[4] ~ "third",
+      urban_score < quintile.2011[5] ~ "fourth",
+      urban_score <= quintile.2011[6] ~ "highest"
+    )
+  )
+diabetes.2011$urban_score_quintile <- factor(diabetes.2011$urban_score_quintile, levels = c("lowest", "second", "third", "fourth", "highest"))
+
+reg1 <- glm(hypertension ~ urban_score_quintile, hypertension.2011, family = "binomial")
+summary(reg1)
+
+reg2 <- glm(diabetes ~ urban_score_quintile, diabetes.2011, family = "binomial")
+summary(reg2)
+```
+

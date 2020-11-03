@@ -1,0 +1,122 @@
+---
+title: "Communications"
+author: "Shozen Dan"
+date: "9/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+## Communications
+```{r}
+house.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2018.dta")
+```
+
+```{r}
+# proportion of households with telephone connection
+mean(house.2011$i023 == 1, na.rm = T)
+mean(house.2013$i023 == 1, na.rm = T)
+mean(house.2015$i023 == 1, na.rm = T)
+mean(house.2018$i023 == 1, na.rm = T)
+```
+```{r}
+# proportion of households with internet connection
+mean(house.2011$i024 == 1, na.rm = T)
+mean(house.2013$i024 == 1, na.rm = T)
+mean(house.2015$i024 == 1, na.rm = T)
+mean(house.2018$i024 == 1, na.rm = T)
+```
+
+```{r, message=FALSE}
+comm.2011 <- house.2011 %>% 
+  select(communityID, i023, i024) %>% 
+  group_by(communityID) %>% 
+  summarise(
+    prop_telephone = mean(i023 == 1, na.rm = T),
+    prop_internet = mean(i024 == 1, na.rm = T)
+  ) %>% 
+  mutate(
+    urban_score_comm = 10*(1*(1-prop_telephone) + 2*prop_internet)/3
+  ) %>% 
+  select(communityID, urban_score_comm)
+
+comm.2013 <- house.2013 %>% 
+  select(communityID, i023, i024) %>% 
+  group_by(communityID) %>% 
+  summarise(
+    prop_telephone = mean(i023 == 1, na.rm = T),
+    prop_internet = mean(i024 == 1, na.rm = T)
+  ) %>% 
+  mutate(
+    urban_score_comm = 10*(1*(1-prop_telephone) + 2*prop_internet)/3
+  ) %>% 
+  select(communityID, urban_score_comm)
+
+comm.2015 <- house.2015 %>% 
+  select(communityID, i023, i024) %>% 
+  group_by(communityID) %>% 
+  summarise(
+    prop_telephone = mean(i023 == 1, na.rm = T),
+    prop_internet = mean(i024 == 1, na.rm = T)
+  ) %>% 
+  mutate(
+    urban_score_comm = 10*(1*(1-prop_telephone) + 2*prop_internet)/3
+  ) %>% 
+  select(communityID, urban_score_comm)
+
+comm.2018 <- house.2018 %>% 
+  select(communityID, i023, i024) %>% 
+  group_by(communityID) %>% 
+  summarise(
+    prop_telephone = mean(i023 == 1, na.rm = T),
+    prop_internet = mean(i024 == 1, na.rm = T)
+  ) %>% 
+  mutate(
+    urban_score_comm = 10*(1*(1-prop_telephone) + 2*prop_internet)/3
+  ) %>% 
+  select(communityID, urban_score_comm)
+```
+
+## Imputation
+```{r}
+summary(comm.2011$urban_score_comm)
+summary(comm.2013$urban_score_comm)
+summary(comm.2015$urban_score_comm)
+summary(comm.2018$urban_score_comm)
+```
+
+```{r}
+urban.score.comm <- rbind(
+  mutate(comm.2011, year="2011"),
+  mutate(comm.2013, year="2013"),
+  mutate(comm.2015, year="2015"),
+  mutate(comm.2018, year="2018")
+)
+
+ggplot(urban.score.comm, aes(x = urban_score_comm)) + 
+  geom_density(aes(fill = year), alpha=0.7) + 
+  scale_x_continuous(breaks = seq(0,10,1)) +
+  labs(
+    title = "CHARLS Urbanicity Index",
+    subtitle = "Communication",
+    x = "Score",
+    y = "Density"
+  ) + 
+  theme_light()
+```
+```{r}
+write_csv(urban.score.comm, "score/communication.csv")
+```
+
+
+
