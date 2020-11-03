@@ -1,0 +1,129 @@
+---
+title: "Economic"
+author: "Shozen Dan"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r read datasets, message=FALSE}
+community <- read_dta("../../data/Community_2011.dta")
+expenditure <- read_dta("../../data/Expenditure_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+psu <- psu %>% mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+## Economic Score
+```{r}
+econ.score <- expenditure %>% 
+  group_by(communityID) %>%
+  summarise(meanPCE = mean(PCE1, na.rm=TRUE)) %>% # mean or median
+  mutate(logMeanPCE = log(meanPCE)) %>% 
+  left_join(psu, by="communityID")
+
+mean.score <- mean(econ.score$logMeanPCE, na.rm = T)
+min.score <- min(econ.score$logMeanPCE, na.rm = T)
+max.score <- max(econ.score$logMeanPCE, na.rm = T)
+
+seq(from = min.score, to = mean.score, length.out = 10)
+seq(from = mean.score, to = max.score, length.out = 11)
+```
+
+### Scoring
+```{r}
+econ.score <- econ.score %>%
+  mutate(
+    urban_score_econ = case_when(
+      logMeanPCE < 7.06 ~ 0,
+      logMeanPCE < 7.29 ~ 0.5,
+      logMeanPCE < 7.53 ~ 1,
+      logMeanPCE < 7.77 ~ 1.5,
+      logMeanPCE < 8.01 ~ 2,
+      logMeanPCE < 8.25 ~ 2.5,
+      logMeanPCE < 8.49 ~ 3,
+      logMeanPCE < 8.73 ~ 3.5,
+      logMeanPCE < 8.97 ~ 4,
+      logMeanPCE < 9.21 ~ 4.5,
+      logMeanPCE < 9.44 ~ 5,
+      logMeanPCE < 9.68 ~ 5.5,
+      logMeanPCE < 9.92 ~ 6,
+      logMeanPCE < 10.15 ~ 6.5,
+      logMeanPCE < 10.39 ~ 7,
+      logMeanPCE < 10.63 ~ 7.5,
+      logMeanPCE < 10.86 ~ 8,
+      logMeanPCE < 11.10 ~ 8.5,
+      logMeanPCE < 11.34 ~ 9,
+      logMeanPCE < 11.58 ~ 9.5,
+      logMeanPCE >= 11.58 ~ 10
+    )
+  ) %>% 
+  select(communityID, urban_score_econ, urban_nbs, city_eng)
+```
+
+### Data Imputation
+```{r imuptation}
+# Proxying missing data with county average
+# Find communities with missing data
+missing.id <- econ.score %>% 
+  filter(is.na(urban_score_econ)) %>% 
+  pull(communityID)
+
+# Computing the county average
+county.avg <- econ.score %>% 
+  group_by(city_eng) %>%
+  summarise(score = mean(urban_score_econ, na.rm = TRUE))
+
+# Imputation
+for(i in 1:length(missing.id)){
+  city <- econ.score %>% 
+    filter(communityID == missing.id[i]) %>% 
+    pull(city_eng)
+  
+  proxy.score <- county.avg %>% 
+    filter(city_eng == city) %>% 
+    pull(score)
+  
+  econ.score[econ.score$communityID == missing.id[i], "urban_score_econ"] <- proxy.score
+}
+
+# Checking for remaining NA
+summary(econ.score$urban_score_econ)
+```
+
+### Visualize
+```{r}
+ggplot(econ.score, aes(x=urban_score_econ)) + 
+  geom_density(aes(fill=urban_nbs), alpha=0.7) + 
+  labs(
+    title = "Urbanicity Scale",
+    subtitle = "Distribution of Economic Score",
+    x = "Economic Score",
+    y = "Density",
+    caption = "China Health and Retirement Longitudinal Survey (2010)",
+    fill = "Urban NBS"
+  ) + 
+  theme_light()
+```
+
+### Export Data
+```{r}
+econ.score %>%
+  select(communityID, urban_score_econ) %>% 
+  write_csv("../../Scores/Community/economic.csv")
+```
+
+
+
+
+
+
+

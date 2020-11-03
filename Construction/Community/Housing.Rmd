@@ -1,0 +1,229 @@
+---
+title: "Housing"
+author: "Shozen Dan"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r read datasets, message=FALSE}
+community <- read_dta("../../data/Community_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+community <- community %>% 
+  left_join(psu, by="communityID") %>% 
+  mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+## Housing Score
+### 1. Electricity
+```{r}
+electricity <- community %>%
+  select(communityID, jb020, jb021, city_eng, urban_nbs) %>%
+  mutate( # electricity
+    jb020 = case_when(
+      jb020 == 24 | jb020 == 0 ~ 366, # correcting inaccurate entries
+      TRUE ~ jb020
+    ),
+    electric_timing = (jb021/24 * jb020/366)*10 # (hours per day of electricity/24 * days per year with electricity/366)*10
+  )
+```
+
+#### Data Imputation
+```{r}
+electricity.mis.id <- 
+  electricity %>% 
+  filter(is.na(electric_timing)) %>% 
+  pull(communityID)
+
+electricity.proxy <- electricity %>% 
+  group_by(city_eng) %>%
+  summarise(score = mean(electric_timing, na.rm = TRUE))
+
+for(i in 1:length(electricity.mis.id)){
+  city_name <- electricity %>% 
+    filter(communityID == electricity.mis.id[i]) %>% 
+    pull(city_eng)
+  
+  score <- electricity.proxy %>% 
+    filter(city_eng == city_name) %>% 
+    pull(score)
+  
+  electricity[electricity$communityID == electricity.mis.id[i], "electric_timing"] <- score
+}
+
+summary(electricity$electric_timing) # check for NA
+```
+
+```{r}
+electricity <- electricity %>% select(communityID, electric_timing)
+```
+
+### 2. Water Sourrce
+```{r}
+water <- community %>% 
+  rename(
+    water_tap = jb006_1,
+    water_well = jb006_2,
+    water_pool = jb006_3,
+    water_river_lakes = jb006_4,
+    water_rain_snow = jb006_5,
+    water_cellar = jb006_6,
+    water_spring = jb006_7,
+    water_other = jb006_8
+  )
+
+water <- water %>% 
+  replace_na( # Assume NA as 0
+    list(
+      water_tap = 0, 
+      water_well = 0, 
+      water_pool = 0, 
+      water_river_lakes = 0, 
+      water_rain_snow = 0, 
+      water_cellar = 0, 
+      water_spring = 0, 
+      water_other = 0
+    )
+  ) %>%
+  mutate( # Replacing invalid entries
+    water_tap =  ifelse(water_tap == 999, 0, water_tap),
+    water_well = ifelse(water_well == 999, 0, water_well),
+    water_pool = ifelse(water_pool == 999, 0, water_pool),
+    water_river_lakes = ifelse(water_river_lakes == 999, 0, water_river_lakes),
+    water_rain_snow = ifelse(water_rain_snow == 999, 0, water_rain_snow),
+    water_cellar = ifelse(water_cellar == 999, 0, water_cellar),
+    water_spring = ifelse(water_spring == 999, 0, water_spring),
+    water_other = ifelse(water_other == 999, 0, water_other)
+  ) %>% 
+  mutate( # Classify water into underground and surface water
+    water_underground = water_well + water_spring,
+    water_surface = water_pool + water_river_lakes + water_cellar,
+  ) %>% 
+  mutate(
+    tap_water = water_tap/(water_tap + water_surface + water_underground) * 10
+  ) %>% 
+  select(communityID, tap_water, city_eng)
+```
+
+#### Data Imputation
+```{r}
+water.mis.id <- water %>% 
+  filter(is.na(tap_water)) %>% 
+  pull(communityID)
+
+water.proxy <- water %>% 
+  group_by(city_eng) %>%
+  summarise(score = mean(tap_water, na.rm = TRUE))
+
+for(i in 1:length(water.mis.id)){
+  city_name <- water %>% filter(communityID == water.mis.id[i]) %>% pull(city_eng)
+  water_type <- water.proxy %>% filter(city_eng == city_name) %>% pull(score)
+  water[water$communityID == water.mis.id[i], "tap_water"] <- water_type
+}
+
+summary(water$tap_water) # check NA
+```
+
+```{r}
+water <- water %>% select(communityID, tap_water)
+```
+
+### 3. Cooking Fuel
+```{r}
+fuel <- community %>% 
+  rename(
+    fuel_hay = jb007_1,
+    fuel_coal = jb007_2,
+    fuel_marsh_gas = jb007_3,
+    fuel_natural_gas = jb007_4,
+    fuel_lpg = jb007_5,
+    fuel_other = jb007_6
+  )
+
+fuel <- fuel %>% 
+  replace_na(
+    list(
+      fuel_hay = 0, 
+      fuel_coal = 0, 
+      fuel_marsh_gas = 0, 
+      fuel_natural_gas = 0, 
+      fuel_lpg = 0, 
+      fuel_other = 0
+    )
+  ) %>%
+  mutate(
+    fuel_hay = ifelse(fuel_hay == 999, 0, fuel_hay),
+    fuel_coal = ifelse(fuel_coal == 999, 0, fuel_coal),
+    fuel_marsh_gas = ifelse(fuel_marsh_gas == 999, 0, fuel_marsh_gas),
+    fuel_natural_gas = ifelse(fuel_natural_gas == 999, 0, fuel_natural_gas),
+    fuel_lpg = ifelse(fuel_lpg == 999, 0, fuel_lpg),
+    fuel_other = ifelse(fuel_other == 999, 0, fuel_other),
+    # combine lpg and natural gas
+    fuel_lpg_natural = fuel_lpg + fuel_natural_gas,
+    # combine hay and marsh gas
+    fuel_hay_marsh = fuel_marsh_gas + fuel_hay,
+    # calculate percentage with lpg/natural gas
+    cooking_fuel = fuel_lpg_natural/(fuel_lpg_natural + fuel_hay_marsh + fuel_coal + fuel_other) * 10
+  ) %>% 
+  select(communityID, cooking_fuel, city_eng, urban_nbs)
+```
+
+#### Data Imputation
+```{r}
+# Main fuel type
+fuel.mis.id <- fuel %>% 
+  filter(is.na(cooking_fuel)) %>% 
+  pull(communityID)
+
+fuel.proxy <- fuel %>% 
+  group_by(city_eng) %>%
+  summarise(score = mean(cooking_fuel, na.rm = TRUE))
+
+for(i in 1:length(fuel.mis.id)){
+  city_name <- fuel %>% filter(communityID == fuel.mis.id[i]) %>% pull(city_eng)
+  fuel_type <- fuel.proxy %>% filter(city_eng == city_name) %>% pull(score)
+  fuel[fuel$communityID == fuel.mis.id[i], "cooking_fuel"] <- fuel_type
+}
+
+summary(fuel$cooking_fuel) # check for NA
+```
+
+### Total Score
+```{r}
+housing.score <- cbind(electricity, select(water, tap_water), select(fuel, -communityID)) %>%
+  mutate(urban_score_housing = (electric_timing + tap_water + cooking_fuel)/3)
+```
+
+### Visualize
+```{r}
+ggplot(housing.score, aes(x=urban_score_housing)) + 
+  geom_density(aes(fill=urban_nbs), alpha=0.7) + 
+  labs(
+    title = "Urbanicity Scale",
+    subtitle = "Distribution of Housing Score",
+    x = "Housing Score",
+    y = "Density",
+    caption = "China Health and Retirement Longitudinal Survey (2010)",
+    fill = "Urban NBS"
+  ) + 
+  theme_light()
+```
+
+### Export Data
+```{r}
+housing.score %>% 
+  select(communityID, urban_score_housing) %>% 
+  group_by(communityID) %>%
+  summarise(urban_score_housing = mean(urban_score_housing)) %>% # Averaging over subcommunities
+  write_csv("../../Scores/Community/housing.csv")
+```
+

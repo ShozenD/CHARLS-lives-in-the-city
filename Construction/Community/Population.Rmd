@@ -1,0 +1,113 @@
+---
+title: "Population Density Score"
+author: "Shozen Dan"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r read datasets, message=FALSE}
+community <- read_dta("../../data/Community_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+community <- community %>% 
+  left_join(psu, by="communityID") %>% 
+  mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+## Population Density Score
+```{r compute score}
+pop.score <- community %>% 
+  select(communityID, ja003, ja003_1, ja003_2, jc001, city_eng, urban_nbs) %>% 
+  mutate(
+    pop_dense = case_when(
+      ja003 == 1 ~ jc001/ja003_1,
+      ja003 == 2 ~ jc001/(ja003_2/1500)
+    ),
+    urban_score_pop = case_when( # urbanicity score
+      pop_dense < 1 ~ 0,
+      pop_dense < 3 ~ 0.5,
+      pop_dense < 5 ~ 1,
+      pop_dense < 10 ~ 1.5,
+      pop_dense < 18 ~ 2,
+      pop_dense < 32 ~ 2.5,
+      pop_dense < 57 ~ 3,
+      pop_dense < 103 ~ 3.5,
+      pop_dense < 184 ~ 4,
+      pop_dense < 330 ~ 4.5,
+      pop_dense < 589 ~ 5,
+      pop_dense < 1053 ~ 5.5,
+      pop_dense < 1881 ~ 6,
+      pop_dense < 3361 ~ 6.5,
+      pop_dense < 6002 ~ 7,
+      pop_dense < 10721 ~ 7.5,
+      pop_dense < 19148 ~ 8,
+      pop_dense < 34200 ~ 8.5,
+      pop_dense < 61083 ~ 9,
+      pop_dense < 109097 ~ 9.5,
+      pop_dense < 194852 ~ 10
+    )
+  )
+```
+
+### Data Imputation
+```{r imputation}
+# Proxying missing data with county average
+# Find communities with missing data
+missing.id <- pop.score %>% 
+  filter(is.na(urban_score_pop)) %>% 
+  pull(communityID)
+
+# Computing the county average
+county.avg <- pop.score %>% 
+  group_by(city_eng) %>%
+  summarise(score = mean(urban_score_pop, na.rm = TRUE))
+
+# Imputation
+for(i in 1:length(missing.id)){
+  city <- pop.score %>% 
+    filter(communityID == missing.id[i]) %>% 
+    pull(city_eng)
+  
+  proxy.score <- county.avg %>% 
+    filter(city_eng == city) %>% 
+    pull(score)
+  
+  pop.score[pop.score$communityID == missing.id[i], "urban_score_pop"] <- proxy.score
+}
+
+# Checking for remaining NA
+summary(pop.score$urban_score_pop)
+```
+
+### Visualize
+```{r}
+ggplot(pop.score, aes(x=urban_score_pop)) + 
+  geom_density(aes(fill=urban_nbs), alpha=0.7) +
+  labs(
+    title = "Urbanicity Scale",
+    subtitle = "Distribution of Population Density Score",
+    x = "Population Density Score",
+    y = "Density",
+    caption = "China Health and Retirement Longitudinal Survey (2010)",
+    fill = "Urban NBS"
+  ) + 
+  theme_light()
+```
+
+### Export Data
+```{r}
+pop.score %>% 
+  select(communityID, urban_score_pop) %>% 
+  group_by(communityID) %>% 
+  summarise(urban_score_pop = mean(urban_score_pop)) %>% # Averaging over subcommunities
+  write_csv("../../Scores/Community/population.csv")
+```

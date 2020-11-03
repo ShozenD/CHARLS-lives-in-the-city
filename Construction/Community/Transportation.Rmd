@@ -1,0 +1,79 @@
+---
+title: "Transportation"
+author: "Shozen Dan"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r read datasets, message=FALSE}
+community <- read_dta("../../data/Community_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+community <- community %>% 
+  left_join(psu, by="communityID") %>% 
+  mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+## Transportation Score
+```{r}
+trans.score <- community %>% 
+  select(communityID, jb001, jb003, jb004, jb005, city_eng, urban_nbs) %>% 
+  mutate_at(c(1:4), ~replace(., is.na(.), 0)) %>% # Assume NAs are 0 
+  mutate(
+    road_type = case_when(
+      jb001 == 1 ~ 2,
+      jb001 == 2 ~ 0,
+      jb001 == 3 ~ 1,
+      jb001 == 4 ~ 2,
+      jb001 == 5 ~ 0
+    ),
+    bus_stop = case_when(
+      jb003 > 0 & jb004 == 0 ~ 2,
+      jb003 > 0 & jb004 <= 1 ~ 1,
+      jb003 == 0 & jb004 <= 1 ~ 1,
+      jb003 == -999 & jb004 <= 1 ~ 1,
+      jb003 > 0 & jb004 > 1 ~ 0,
+      jb003 == 0 | is.na(jb003) | jb003 == -999 ~ 0
+    ),
+    train_stop = case_when(
+      jb005 == 0 ~ 2,
+      jb005 <= 1 ~ 1,
+      TRUE ~ 0
+    ),
+    urban_score_trans = (road_type + bus_stop + train_stop)*1.6666
+  )
+```
+
+### Visualize
+```{r}
+ggplot(trans.score, aes(x=urban_score_trans)) + 
+  geom_density(aes(fill=urban_nbs), alpha=0.7) +
+  labs(
+    title = "Urbanicity Scale",
+    subtitle = "Distribution of Transportation Score",
+    x = "Transportation Score",
+    y = "Density",
+    caption = "China Health and Retirement Longitudinal Survey (2010)",
+    fill = "Urban NBS"
+  ) + 
+  theme_light()
+```
+
+### Export Data
+```{r}
+trans.score %>% 
+  select(communityID, urban_score_trans) %>% 
+  group_by(communityID) %>%
+  summarise(urban_score_trans = mean(urban_score_trans)) %>% # Averaging over sub communities
+  write_csv("../../Scores/Community/transportation.csv")
+```
+

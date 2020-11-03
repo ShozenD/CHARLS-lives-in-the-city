@@ -1,0 +1,137 @@
+---
+title: "Education"
+author: "Shozen Dan"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+library(mice)
+```
+
+```{r read datasets, message=FALSE}
+community <- read_dta("../../data/Community_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+# Other scores
+econ.score <- read_csv("../../Scores/Community/economic.csv")
+social.score <- read_csv("../../Scores/Community/social.csv")
+housing.score <- read_csv("../../Scores/Community/housing.csv")
+transportation.score <- read_csv("../../Scores/Community/transportation.csv")
+market.score <- read_csv("../../Scores/Community/market.csv")
+population.score <- read_csv("../../Scores/Community/population.csv")
+
+df.score <- market.score %>% 
+  left_join(transportation.score) %>% 
+  left_join(social.score) %>%
+  left_join(housing.score) %>%
+  left_join(population.score)
+
+community <- community %>% 
+  left_join(psu, by="communityID") %>% 
+  mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+## Education Score
+```{r}
+edu.score <- community %>% 
+  select(communityID, jc019, jc020, jc021, jc022, jc023, jc024, city_eng, province_eng, urban_nbs) %>%
+  mutate(
+    avg_edu = (0*jc019 + 1*jc020 + 2*jc021 + 3*jc022 + 4*jc023 + 5*jc024)/100,
+    urban_score_edu = avg_edu * 10/5
+  ) %>% 
+  select(communityID, urban_score_edu, city_eng, province_eng, urban_nbs)
+```
+
+
+### Data Imputation
+```{r}
+# proxy with county level data
+edu.mis.id <- edu.score %>% 
+  filter(is.na(urban_score_edu)) %>% 
+  pull(communityID)
+
+edu.proxy <- edu.score %>% 
+  group_by(city_eng) %>%
+  summarise(score = mean(urban_score_edu, na.rm = TRUE))
+
+for(i in 1:length(edu.mis.id)){
+  city_name <- edu.score %>% filter(communityID == edu.mis.id[i]) %>% pull(city_eng)
+  urban_score_edu <- edu.proxy %>% filter(city_eng == city_name) %>% pull(score)
+  edu.score[edu.score$communityID == edu.mis.id[i], "urban_score_edu"] <- urban_score_edu
+}
+
+summary(edu.score$urban_score_edu) # check NA
+
+# proxy with province level data
+edu.mis.id <- edu.score %>% 
+  filter(is.na(urban_score_edu)) %>% 
+  pull(communityID)
+
+edu.proxy <- edu.score %>% 
+  group_by(province_eng) %>%
+  summarise(score = mean(urban_score_edu, na.rm = TRUE))
+
+for(i in 1:length(edu.mis.id)){
+  city_name <- edu.score %>% filter(communityID == edu.mis.id[i]) %>% pull(province_eng)
+  urban_score_edu <- edu.proxy %>% filter(province_eng == city_name) %>% pull(score)
+  edu.score[edu.score$communityID == edu.mis.id[i], "urban_score_edu"] <- urban_score_edu
+}
+
+# Data for Akesu, XingJian was not available
+summary(edu.score$urban_score_edu) # check NA
+```
+
+```{r}
+# Using MICE to impute
+# Average over subcommunities
+edu.score <- edu.score %>%
+  group_by(communityID) %>%
+  summarise(urban_score_edu = mean(urban_score_edu))
+
+# Predict score for Akesu, XingJian using other scores
+df.score.imp <- df.score %>% 
+  left_join(select(edu.score, communityID, urban_score_edu)) %>% 
+  select(-communityID)
+
+imp <- mice(df.score.imp, maxit = 10, print =  FALSE) # specify methods for MICE (Need to find default settings)
+edu.score.imp <- complete(imp, 1) %>% pull(urban_score_edu)
+
+edu.score$urban_score_edu <- edu.score.imp
+edu.score <- edu.score %>% 
+  left_join(psu, by="communityID") %>%
+  select(communityID, urban_score_edu, urban_nbs) %>%
+  mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+### Visualize
+```{r}
+ggplot(edu.score, aes(x=urban_score_edu)) + 
+  geom_density(aes(fill=urban_nbs), alpha=0.7) + 
+  labs(
+    title = "Urbanicity Scale",
+    subtitle = "Distribution of Education Score",
+    x = "Education Score",
+    y = "Density",
+    caption = "China Health and Retirement Longitudinal Survey (2010)",
+    fill = "Urban NBS"
+  ) + 
+  theme_light()
+```
+
+```{r}
+edu.score %>% 
+  select(communityID, urban_score_edu) %>%
+  write_csv("../../Scores/Community/education.csv")
+```
+
+
+
+
+

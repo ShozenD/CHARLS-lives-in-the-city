@@ -1,0 +1,88 @@
+---
+title: "Market Score"
+author: "Shozen Dan"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r read datasets, message=FALSE}
+community <- read_dta("../../data/Community_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+community <- community %>% 
+  left_join(psu, by="communityID") %>% 
+  mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+## Market Score
+```{r}
+market.score <- community %>% 
+  select(
+    communityID, 
+    jb028_1_11_, # convenience store
+    jb028_1_12_, # farmers' market
+    jb028_1_13_, # super market
+    jb028_2_11_, # distance from most commonly used convenience store
+    jb028_2_12_, # distance from most commonly used farmers' market
+    jb028_2_13_, # distance from most commonly used supermarket
+    urban_nbs
+  ) %>% 
+  mutate_at(c(1:6), ~replace(., is.na(.), 0)) %>% # Assume NAs are 0
+  mutate(
+    conveni = case_when(
+      jb028_1_11_ > 2 ~ 3,
+      jb028_1_11_ > 1 ~ 2,
+      jb028_2_11_ > 0 & jb028_2_11_ <= 1 ~ 1,
+      TRUE ~ 0
+    ),
+    farmer = case_when(
+      jb028_1_12_ > 2 ~ 3,
+      jb028_1_12_ > 1 ~ 2,
+      jb028_2_12_ > 0 & jb028_2_12_ <= 1 ~ 1,
+      TRUE ~ 0
+    ),
+    super = case_when(
+      jb028_1_13_ > 2 ~ 3,
+      jb028_1_13_ > 1 ~ 2,
+      jb028_2_13_ > 0 & jb028_2_13_ <= 1 ~ 1,
+      TRUE ~ 0
+    )
+  ) %>% 
+  mutate(
+    urban_score_markets = 10*(conveni + farmer + super)/9,
+  )
+```
+
+### Visualize
+```{r}
+ggplot(market.score, aes(x=urban_score_markets)) + 
+  geom_density(aes(fill=urban_nbs), alpha=0.7) +
+  labs(
+    title = "Urbanicity Scale",
+    subtitle = "Distribution of Market Score",
+    x = "Market Score",
+    y = "Density",
+    caption = "China Health and Retirement Longitudinal Survey (2010)",
+    fill = "Urban NBS"
+  ) + 
+  theme_light()
+```
+
+### Export
+```{r}
+market.score %>% 
+  select(communityID, urban_score_markets) %>% 
+  group_by(communityID) %>%
+  summarise(urban_score_markets = mean(urban_score_markets)) %>% # Averaging over sub communities
+  write_csv("../../Scores/Community/market.csv")
+```
+

@@ -1,0 +1,196 @@
+---
+title: "Diversity Score"
+author: "Shozen Dan"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r read datasets, message=FALSE}
+community <- read_dta("../../data/Community_2011.dta")
+expenditure <- read_dta("../../data/Expenditure_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+community <- community %>% left_join(psu, by="communityID") %>% 
+  mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+## Diversity Score
+```{r}
+# Educational Variance
+diversity.edu <- community %>% 
+  mutate(
+    avg_edu = (0*jc019 + 1*jc020 + 2*jc021 + 3*jc022 + 4*jc023 + 5*jc024)/100,
+    edu_var = (
+      (1 - avg_edu)^2*jc020 + 
+      (2 - avg_edu)^2*jc021 + 
+      (3 - avg_edu)^2*jc022 + 
+      (4 - avg_edu)^2*jc023 + 
+      (5 - avg_edu)^2*jc024)/100
+    )
+```
+
+```{r}
+median.score <- median(diversity.edu$edu_var, na.rm = T)
+min.score <- min(diversity.edu$edu_var, na.rm = T)
+max.score <- max(diversity.edu$edu_var, na.rm = T)
+
+seq(from=min.score, to=median.score, length.out = 10)
+seq(from=median.score, to=max.score, length.out = 11)
+
+diversity.edu <- diversity.edu %>% 
+  mutate(
+    edu_var_score = case_when(
+      edu_var < 0.11 ~ 0,
+      edu_var < 0.17 ~ 0.5,
+      edu_var < 0.23 ~ 1,
+      edu_var < 0.29 ~ 1.5,
+      edu_var < 0.36 ~ 2,
+      edu_var < 0.42 ~ 2.5,
+      edu_var < 0.48 ~ 3,
+      edu_var < 0.55 ~ 3.5,
+      edu_var < 0.61 ~ 4,
+      edu_var < 0.67 ~ 4.5,
+      edu_var < 1.46 ~ 5,
+      edu_var < 2.25 ~ 5.5,
+      edu_var < 3.04 ~ 6,
+      edu_var < 3.83 ~ 6.5,
+      edu_var < 4.62 ~ 7,
+      edu_var < 5.42 ~ 7.5,
+      edu_var < 6.21 ~ 8,
+      edu_var < 7.00 ~ 8.5,
+      edu_var < 7.80 ~ 9,
+      edu_var < 8.58 ~ 9.5,
+      edu_var >= 8.58 ~ 10
+    )
+  ) %>% 
+  select(communityID, edu_var_score, urban_nbs, city_eng, province_eng)
+```
+
+```{r}
+# proxy with county level data
+edu_var.mis.id <- diversity.edu %>% 
+  filter(is.na(edu_var_score)) %>% 
+  pull(communityID)
+
+edu_var.proxy <- diversity.edu %>% 
+  group_by(city_eng) %>%
+  summarise(score = mean(edu_var_score, na.rm = TRUE))
+
+for(i in 1:length(edu_var.mis.id)){
+  city_name <- diversity.edu %>% filter(communityID == edu_var.mis.id[i]) %>% pull(city_eng)
+  edu_var_score <- edu_var.proxy %>% filter(city_eng == city_name) %>% pull(score)
+  diversity.edu[diversity.edu$communityID == edu_var.mis.id[i], "edu_var_score"] <- edu_var_score
+}
+
+summary(diversity.edu$edu_var_score) # check NA
+
+# proxy with province level data
+edu_var.mis.id <- diversity.edu %>% 
+  filter(is.na(edu_var_score)) %>% 
+  pull(communityID)
+
+edu.proxy <- diversity.edu %>% 
+  group_by(province_eng) %>%
+  summarise(score = mean(edu_var_score, na.rm = TRUE))
+
+for(i in 1:length(edu_var.mis.id)){
+  city_name <- diversity.edu %>% filter(communityID == edu_var.mis.id[i]) %>% pull(province_eng)
+  edu_var_score <- edu.proxy %>% filter(province_eng == city_name) %>% pull(score)
+  diversity.edu[diversity.edu$communityID == edu_var.mis.id[i], "edu_var_score"] <- edu_var_score
+}
+
+summary(diversity.edu$edu_var_score)
+```
+
+## Income Score
+```{r}
+# Income Variance
+income_variance <- expenditure %>% 
+  group_by(communityID) %>%
+  summarise(
+    logPCE_var = var(log(PCE1), na.rm=T)
+  )
+```
+
+### Scoring
+```{r}
+median(income_variance$logPCE_var, na.rm = T)
+min.score <- min(income_variance$logPCE_var, na.rm = T)
+max.score <- max(income_variance$logPCE_var, na.rm = T)
+
+seq(from=min.score, to=median.score, length.out = 10)
+seq(from=median.score, to=max.score, length.out = 11)
+
+income_variance <- income_variance %>% 
+  mutate(
+    PCE_var_score = case_when(
+      logPCE_var < 0.01 ~ 0,
+      logPCE_var < 0.08 ~ 0.5,
+      logPCE_var < 0.15 ~ 1,
+      logPCE_var < 0.22 ~ 1.5,
+      logPCE_var < 0.30 ~ 2,
+      logPCE_var < 0.37 ~ 2.5,
+      logPCE_var < 0.45 ~ 3,
+      logPCE_var < 0.52 ~ 3.5,
+      logPCE_var < 0.60 ~ 4,
+      logPCE_var < 0.67 ~ 4.5,
+      logPCE_var < 0.87 ~ 5,
+      logPCE_var < 1.07 ~ 5.5,
+      logPCE_var < 1.27 ~ 6,
+      logPCE_var < 1.47 ~ 6.5,
+      logPCE_var < 1.67 ~ 7,
+      logPCE_var < 1.87 ~ 7.5,
+      logPCE_var < 2.07 ~ 8,
+      logPCE_var < 2.27 ~ 8.5,
+      logPCE_var < 2.47 ~ 9,
+      logPCE_var < 2.67 ~ 9.5,
+      logPCE_var >= 2.67 ~ 10
+    )
+  ) %>% 
+  select(communityID, PCE_var_score)
+```
+
+## Summary
+```{r}
+diversity.score <- diversity.edu %>% 
+  left_join(income_variance, by="communityID") %>%
+  mutate(
+    urban_score_div = case_when(
+      !is.na(edu_var_final) & !is.na(PCE_var_score) ~ (edu_var_final + PCE_var_score)/2,
+      is.na(edu_var_final) ~ PCE_var_score,
+      TRUE ~ edu_var_final
+    )
+  ) %>% 
+  select(communityID, urban_score_div, urban_nbs)
+```
+
+```{r}
+ggplot(diversity.score, aes(x=urban_score_div)) + 
+  geom_density(aes(fill=urban_nbs), alpha=0.7) + 
+  labs(
+    title = "Urbanicity Scale",
+    subtitle = "Distribution of Diversity Score",
+    x = "Economic Score",
+    y = "Density",
+    caption = "China Health and Retirement Longitudinal Survey (2010)",
+    fill = "Urban NBS"
+  ) + 
+  theme_light()
+```
+
+## Export Data
+```{r}
+diversity.score %>% 
+  select(communityID, urban_score_div) %>% 
+  write_csv("../../Scores/Community/diversity.csv")
+```
+

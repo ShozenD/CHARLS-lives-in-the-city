@@ -1,0 +1,88 @@
+---
+title: "Social Services Score"
+author: "Shozen Dan"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r read datasets, message=FALSE}
+community <- read_dta("../../data/Community_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+community <- community %>% 
+  left_join(psu, by="communityID") %>% 
+  mutate(urban_nbs = ifelse(urban_nbs == 0, "rural", "urban"))
+```
+
+## Social Services Score
+```{r}
+social.score <- community %>%
+  rename(
+    kinder = jb028_1_1_,
+    urban_insure = jf010s1,
+    rural_insure = jf010s2,
+    kinder_dist = jb028_2_1_
+  ) %>%
+  replace_na(
+    list(
+      kinder = 0,
+      urban_insure = 0,
+      rural_insure = 0,
+      kinder_dist = 0
+    )
+  ) %>%
+  mutate(
+    kinder_avail = case_when(
+      kinder > 0 ~ 1,
+      TRUE ~ 0
+    ),
+    urban_avail = case_when(
+      urban_insure > 0 ~ 1,
+      TRUE ~ 0
+    ),
+    rural_avail = case_when(
+      rural_insure > 0 ~ 1,
+      TRUE ~ 0
+    ),
+    kinder_distance = case_when(
+      kinder_dist > 0 & kinder_dist < 25 ~ 1,
+      TRUE ~ 0
+    )
+  ) %>% 
+  mutate(urban_score_soc = 3.3 * kinder_avail + 3.3 * urban_avail + 3.3 * rural_avail + 1.65 * kinder_distance) %>% 
+  select(communityID, urban_score_soc, urban_nbs)
+```
+
+### Visualize
+```{r}
+ggplot(social.score, aes(x = urban_score_soc)) +
+  geom_density(aes(fill = urban_nbs), alpha = 0.7) + 
+  labs(
+    title = "Urbanicity Scale",
+    subtitle = "Distribution of Social Services Score",
+    x = "Social Services Score",
+    y = "Density",
+    caption = "China Health and Retirement Longitudinal Survey (2010)",
+    fill = "Urban NBS"
+  ) + 
+  theme_light()
+```
+
+### Export Data
+```{r}
+social.score %>% 
+  select(communityID, urban_score_soc) %>% 
+  group_by(communityID) %>% 
+  summarise(urban_score_soc = mean(urban_score_soc)) %>% # getting rid of subcommunities
+  write_csv("../../Scores/Community/social.csv")
+```
+
