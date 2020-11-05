@@ -35,7 +35,7 @@ diversity.edu <- community %>%
       (3 - avg_edu)^2*jc022 + 
       (4 - avg_edu)^2*jc023 + 
       (5 - avg_edu)^2*jc024)/100
-    )
+  )
 ```
 
 ```{r}
@@ -109,6 +109,8 @@ for(i in 1:length(edu_var.mis.id)){
 }
 
 summary(diversity.edu$edu_var_score)
+
+hist(diversity.edu$edu_var_score)
 ```
 
 ## Income Score
@@ -117,15 +119,15 @@ summary(diversity.edu$edu_var_score)
 income_variance <- expenditure %>% 
   group_by(communityID) %>%
   summarise(
-    logPCE_var = var(log(PCE1), na.rm=T)
+    log_PCE_var = log(var(PCE1, na.rm=T))
   )
 ```
 
 ### Scoring
 ```{r}
-median(income_variance$logPCE_var, na.rm = T)
-min.score <- min(income_variance$logPCE_var, na.rm = T)
-max.score <- max(income_variance$logPCE_var, na.rm = T)
+median.score <- median(income_variance$log_PCE_var, na.rm = T)
+min.score <- min(income_variance$log_PCE_var, na.rm = T)
+max.score <- max(income_variance$log_PCE_var, na.rm = T)
 
 seq(from=min.score, to=median.score, length.out = 10)
 seq(from=median.score, to=max.score, length.out = 11)
@@ -133,27 +135,27 @@ seq(from=median.score, to=max.score, length.out = 11)
 income_variance <- income_variance %>% 
   mutate(
     PCE_var_score = case_when(
-      logPCE_var < 0.01 ~ 0,
-      logPCE_var < 0.08 ~ 0.5,
-      logPCE_var < 0.15 ~ 1,
-      logPCE_var < 0.22 ~ 1.5,
-      logPCE_var < 0.30 ~ 2,
-      logPCE_var < 0.37 ~ 2.5,
-      logPCE_var < 0.45 ~ 3,
-      logPCE_var < 0.52 ~ 3.5,
-      logPCE_var < 0.60 ~ 4,
-      logPCE_var < 0.67 ~ 4.5,
-      logPCE_var < 0.87 ~ 5,
-      logPCE_var < 1.07 ~ 5.5,
-      logPCE_var < 1.27 ~ 6,
-      logPCE_var < 1.47 ~ 6.5,
-      logPCE_var < 1.67 ~ 7,
-      logPCE_var < 1.87 ~ 7.5,
-      logPCE_var < 2.07 ~ 8,
-      logPCE_var < 2.27 ~ 8.5,
-      logPCE_var < 2.47 ~ 9,
-      logPCE_var < 2.67 ~ 9.5,
-      logPCE_var >= 2.67 ~ 10
+      log_PCE_var < 11.54 ~ 0,
+      log_PCE_var < 12.18 ~ 0.5,
+      log_PCE_var < 12.82 ~ 1,
+      log_PCE_var < 13.46 ~ 1.5,
+      log_PCE_var < 14.10 ~ 2,
+      log_PCE_var < 14.74 ~ 2.5,
+      log_PCE_var < 15.38 ~ 3,
+      log_PCE_var < 16.02 ~ 3.5,
+      log_PCE_var < 16.66 ~ 4,
+      log_PCE_var < 17.3 ~ 4.5,
+      log_PCE_var < 18.07 ~ 5,
+      log_PCE_var < 18.84 ~ 5.5,
+      log_PCE_var < 19.61 ~ 6,
+      log_PCE_var < 20.39 ~ 6.5,
+      log_PCE_var < 21.16 ~ 7,
+      log_PCE_var < 21.93 ~ 7.5,
+      log_PCE_var < 22.7 ~ 8,
+      log_PCE_var < 23.47 ~ 8.5,
+      log_PCE_var < 24.24 ~ 9,
+      log_PCE_var < 25.01 ~ 9.5,
+      log_PCE_var >= 25.01 ~ 9.5,
     )
   ) %>% 
   select(communityID, PCE_var_score)
@@ -165,9 +167,9 @@ diversity.score <- diversity.edu %>%
   left_join(income_variance, by="communityID") %>%
   mutate(
     urban_score_div = case_when(
-      !is.na(edu_var_final) & !is.na(PCE_var_score) ~ (edu_var_final + PCE_var_score)/2,
-      is.na(edu_var_final) ~ PCE_var_score,
-      TRUE ~ edu_var_final
+      !is.na(edu_var_score) & !is.na(PCE_var_score) ~ (edu_var_score + PCE_var_score)/2,
+      is.na(edu_var_score) ~ PCE_var_score,
+      TRUE ~ edu_var_score
     )
   ) %>% 
   select(communityID, urban_score_div, urban_nbs)
@@ -191,6 +193,8 @@ ggplot(diversity.score, aes(x=urban_score_div)) +
 ```{r}
 diversity.score %>% 
   select(communityID, urban_score_div) %>% 
+  group_by(communityID) %>%
+  summarise(urban_score_div = mean(urban_score_div)) %>%
   write_csv("../../Scores/Community/diversity.csv")
 ```
 

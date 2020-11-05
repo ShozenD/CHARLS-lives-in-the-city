@@ -16,10 +16,10 @@ library(haven)
 
 ## Communications
 ```{r}
-house.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2011.dta")
-house.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2013.dta")
-house.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2015.dta")
-house.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2018.dta")
+house.2011 <- read_dta("../../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../../data/Housing_Characteristics_2018.dta")
 ```
 
 ```{r}
@@ -115,7 +115,7 @@ ggplot(urban.score.comm, aes(x = urban_score_comm)) +
   theme_light()
 ```
 ```{r}
-write_csv(urban.score.comm, "score/communication.csv")
+write_csv(urban.score.comm, "../../Scores/Individual/communication.csv")
 ```
 
 

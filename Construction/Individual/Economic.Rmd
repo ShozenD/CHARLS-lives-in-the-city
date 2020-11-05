@@ -9,27 +9,27 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r message=F}
 library(tidyverse)
 library(haven)
 ```
 
 ```{r}
-work.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Work_Retirement_and_Pension_2011.dta")
-work.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Work_Retirement_and_Pension_2013.dta")
-work.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Work_Retirement_and_Pension_2015.dta")
-work.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Work_Retirement_and_Pension_2018.dta")
+work.2011 <- read_dta("../../data/Work_Retirement_and_Pension_2011.dta")
+work.2013 <- read_dta("../../data/Work_Retirement_and_Pension_2013.dta")
+work.2015 <- read_dta("../../data/Work_Retirement_and_Pension_2015.dta")
+work.2018 <- read_dta("../../data/Work_Retirement_and_Pension_2018.dta")
 ```
 
 ```{r}
-income.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2011.dta")
-income.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2013.dta")
-income.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2015.dta")
-income.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2018.dta")
+income.2011 <- read_dta("../../data/Household_Income_2011.dta")
+income.2013 <- read_dta("../../data/Household_Income_2013.dta")
+income.2015 <- read_dta("../../data/Household_Income_2015.dta")
+income.2018 <- read_dta("../../data/Household_Income_2018.dta")
 ```
 
 ```{r}
-psu <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/PSU.dta") %>% 
+psu <- read_dta("../../data/PSU.dta") %>% 
   dplyr::select(communityID,province_eng, city_eng, urban_nbs)
 ```
 
@@ -202,9 +202,46 @@ temp.exp <- rbind(
   mutate(exp.2018, year="2018")
 )
 
-ggplot(temp.exp, aes(x=log(urban_score_exp))) +
+median.score <- median(temp.exp$urban_score_exp)
+min.score <- min(temp.exp$urban_score_exp)
+max.score <- max(temp.exp$urban_score_exp)
+
+seq(from=min.score, to=median.score, length.out = 10)
+seq(from=median.score, to=max.score, length.out = 11)
+
+temp.exp <- temp.exp %>%
+  mutate(
+    urban_score_exp = case_when(
+      urban_score_exp < 1 ~ 0,
+      urban_score_exp < 51.9 ~ 0.5,
+      urban_score_exp < 103.8 ~ 1,
+      urban_score_exp < 155.7 ~ 1.5,
+      urban_score_exp < 207.6 ~ 2,
+      urban_score_exp < 259.5 ~ 2.5,
+      urban_score_exp < 311.4 ~ 3,
+      urban_score_exp < 363.3 ~ 3.5,
+      urban_score_exp < 415.2 ~ 4,
+      urban_score_exp < 467.1 ~ 4.5,
+      urban_score_exp < 3327.83 ~ 5,
+      urban_score_exp < 6188.56 ~ 5.5,
+      urban_score_exp < 9049.30 ~ 6,
+      urban_score_exp < 11910.03 ~ 6.5,
+      urban_score_exp < 14770.77 ~ 7,
+      urban_score_exp < 17631.5 ~ 7.5,
+      urban_score_exp < 20492.24 ~ 8,
+      urban_score_exp < 23352.97 ~ 8.5,
+      urban_score_exp < 26213.71 ~ 9,
+      urban_score_exp < 29074.44 ~ 9.5,
+      urban_score_exp >= 29074.44 ~ 10
+    )
+  )
+```
+
+```{r}
+ggplot(temp.exp, aes(x=urban_score_exp)) + 
   geom_density(aes(fill=year), alpha=0.7)
 ```
+
 
 ```{r, message=FALSE}
 econ.2011 <- work.2011 %>% 
@@ -258,7 +295,7 @@ ggplot(temp.econ, aes(x=urban_score_econ)) +
 
 ```{r}
 urban.score.econ <- left_join(temp.econ, temp.exp, by=c("communityID", "year")) %>% 
-  mutate(urban_score_econ = (1*urban_score_econ + 2*log(urban_score_exp + 1))/3) %>% 
+  mutate(urban_score_econ = (urban_score_econ + urban_score_exp)/2) %>% 
   select(communityID, urban_score_econ, year)
 
 ggplot(urban.score.econ, aes(x=urban_score_econ)) + 
@@ -273,6 +310,6 @@ ggplot(urban.score.econ, aes(x=urban_score_econ)) +
   theme_light()
 ```
 ```{r}
-write_csv(urban.score.econ, "score/economic.csv")
+write_csv(urban.score.econ, "../../Scores/Individual/economic.csv")
 ```
 

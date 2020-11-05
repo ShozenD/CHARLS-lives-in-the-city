@@ -15,10 +15,11 @@ library(haven)
 ```
 
 ```{r}
-income.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2011.dta")
-income.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2013.dta")
-income.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2015.dta")
-income.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Household_Income_2018.dta")
+income.2011 <- read_dta("../../data/Household_Income_2011.dta")
+income.2013 <- read_dta("../../data/Household_Income_2013.dta")
+income.2015 <- read_dta("../../data/Household_Income_2015.dta")
+income.2018 <- read_dta("../../data/Household_Income_2018.dta")
+psu <- read_dta("../../data/PSU.dta")
 ```
 
 ```{r, message=FALSE}
@@ -40,27 +41,12 @@ div.2011 <- income.2011 %>%
   filter(food_expence != Inf) %>% 
   mutate(
     monthly_PCE = food_expence + ge009_1 + ge009_2 + ge009_3 + ge009_4 + ge009_5 + ge009_6 + ge009_7,
-    log_monthly_PCE = log(monthly_PCE + 1)
-  ) %>%
+  ) %>% 
   group_by(communityID) %>% 
   summarise(
-    urban_score_div = var(monthly_PCE, na.rm = T)/1000
+    median_monthly_PCE = median(monthly_PCE, na.rm=T)
   ) %>%
-  mutate(
-    urban_score_div = case_when(
-      urban_score_div < 20 ~ 1,
-      urban_score_div < 90 ~ 2,
-      urban_score_div < 400 ~ 3,
-      urban_score_div < 1800 ~ 4,
-      urban_score_div < 8100 ~ 5,
-      urban_score_div < 36300 ~ 6,
-      urban_score_div < 162750 ~ 7,
-      urban_score_div < 729400 ~ 8,
-      urban_score_div < 3269000 ~ 9,
-      urban_score_div > 3269000 ~ 10
-    )
-  ) %>% 
-  select(communityID, urban_score_div)
+  select(communityID, median_monthly_PCE)
 
 div.2013 <- income.2013 %>% 
   select(communityID, ge004, ge006, ge007, starts_with("ge009")) %>% 
@@ -80,27 +66,12 @@ div.2013 <- income.2013 %>%
   filter(food_expence != Inf) %>% 
   mutate(
     monthly_PCE = food_expence + ge009_1 + ge009_2 + ge009_3 + ge009_4 + ge009_5 + ge009_6 + ge009_7,
-    log_monthly_PCE = log(monthly_PCE + 1)
-  ) %>%
+  ) %>% 
   group_by(communityID) %>% 
   summarise(
-    urban_score_div = var(monthly_PCE, na.rm = T)/1000
-  ) %>% 
-  mutate(
-    urban_score_div = case_when(
-      urban_score_div < 20 ~ 1,
-      urban_score_div < 90 ~ 2,
-      urban_score_div < 400 ~ 3,
-      urban_score_div < 1800 ~ 4,
-      urban_score_div < 8100 ~ 5,
-      urban_score_div < 36300 ~ 6,
-      urban_score_div < 162750 ~ 7,
-      urban_score_div < 729400 ~ 8,
-      urban_score_div < 3269000 ~ 9,
-      urban_score_div > 3269000 ~ 10
-    )
-  ) %>% 
-  select(communityID, urban_score_div)
+    median_monthly_PCE = median(monthly_PCE, na.rm=T)
+  ) %>%
+  select(communityID, median_monthly_PCE)
 
 div.2015 <- income.2015 %>% 
   select(communityID, ge004, ge006, ge007, starts_with("ge009")) %>% 
@@ -120,27 +91,12 @@ div.2015 <- income.2015 %>%
   filter(food_expence != Inf) %>% 
   mutate(
     monthly_PCE = food_expence + ge009_1 + ge009_2 + ge009_3 + ge009_4 + ge009_5 + ge009_6 + ge009_7,
-    log_monthly_PCE = log(monthly_PCE + 1)
-  ) %>%
+  ) %>% 
   group_by(communityID) %>% 
   summarise(
-    urban_score_div = var(monthly_PCE, na.rm = T)/1000
-  ) %>% 
-  mutate(
-    urban_score_div = case_when(
-      urban_score_div < 20 ~ 1,
-      urban_score_div < 90 ~ 2,
-      urban_score_div < 400 ~ 3,
-      urban_score_div < 1800 ~ 4,
-      urban_score_div < 8100 ~ 5,
-      urban_score_div < 36300 ~ 6,
-      urban_score_div < 162750 ~ 7,
-      urban_score_div < 729400 ~ 8,
-      urban_score_div < 3269000 ~ 9,
-      urban_score_div > 3269000 ~ 10
-    )
-  ) %>% 
-  select(communityID, urban_score_div)
+    median_monthly_PCE = median(monthly_PCE, na.rm=T)
+  ) %>%
+  select(communityID, median_monthly_PCE)
 
 div.2018 <- income.2018 %>% 
   select(communityID, ge004, ge006_w4, ge007_w4, starts_with("ge009")) %>% 
@@ -160,27 +116,12 @@ div.2018 <- income.2018 %>%
   filter(food_expence != Inf) %>% 
   mutate(
     monthly_PCE = food_expence + ge009_1 + ge009_2 + ge009_3 + ge009_4 + ge009_5 + ge009_6 + ge009_7,
-    log_monthly_PCE = log(monthly_PCE + 1)
-  ) %>%
+  ) %>% 
   group_by(communityID) %>% 
   summarise(
-    urban_score_div = var(monthly_PCE, na.rm = T)/1000
-  ) %>% 
-  mutate(
-    urban_score_div = case_when(
-      urban_score_div < 20 ~ 1,
-      urban_score_div < 90 ~ 2,
-      urban_score_div < 400 ~ 3,
-      urban_score_div < 1800 ~ 4,
-      urban_score_div < 8100 ~ 5,
-      urban_score_div < 36300 ~ 6,
-      urban_score_div < 162750 ~ 7,
-      urban_score_div < 729400 ~ 8,
-      urban_score_div < 3269000 ~ 9,
-      urban_score_div > 3269000 ~ 10
-    )
-  ) %>% 
-  select(communityID, urban_score_div)
+    median_monthly_PCE = median(monthly_PCE, na.rm=T)
+  ) %>%
+  select(communityID, median_monthly_PCE)
 ```
 
 ```{r}
@@ -191,6 +132,77 @@ urban.score.div <- rbind(
   mutate(div.2018, year="2018")
 )
 
+median.score <- median(urban.score.div$median_monthly_PCE, na.rm=T)
+min.score <- min(urban.score.div$median_monthly_PCE, na.rm=T)
+max.score <- max(urban.score.div$median_monthly_PCE, na.rm=T)
+
+seq(from=min.score, to=median.score, length.out = 10)
+seq(from=median.score, to=max.score, length.out = 11)
+
+urban.score.div <- urban.score.div %>% 
+  mutate(
+    urban_score_div = case_when(
+      median_monthly_PCE < 1 ~ 0,
+      median_monthly_PCE < 61.11 ~ 0.5,
+      median_monthly_PCE < 122.22 ~ 1,
+      median_monthly_PCE < 183.33 ~ 1.5,
+      median_monthly_PCE < 244.44 ~ 2,
+      median_monthly_PCE < 305.56 ~ 2.5,
+      median_monthly_PCE < 366.67 ~ 3,
+      median_monthly_PCE < 427.78 ~ 3.5,
+      median_monthly_PCE < 488.89 ~ 4,
+      median_monthly_PCE < 550.0 ~ 4.5,
+      median_monthly_PCE < 1130.2 ~ 5,
+      median_monthly_PCE < 1710.4 ~ 5.5,
+      median_monthly_PCE < 2290.6 ~ 6,
+      median_monthly_PCE < 2870.8 ~ 6.5,
+      median_monthly_PCE < 3451.0 ~ 7,
+      median_monthly_PCE < 4031.2 ~ 7.5,
+      median_monthly_PCE < 4611.4 ~ 8,
+      median_monthly_PCE < 5191.6 ~ 8.5,
+      median_monthly_PCE < 5771.8 ~ 9,
+      median_monthly_PCE < 6352.0 ~ 9.5,
+      median_monthly_PCE >= 6352.0 ~ 10,
+    ) 
+  ) %>% 
+  select(communityID, year, urban_score_div)
+```
+
+## Data Imputation
+```{r}
+urban.score.div <- urban.score.div %>%
+  left_join(select(psu, communityID, city_eng))
+
+# Proxying missing data with county average
+# Find communities with missing data
+missing.id <- urban.score.div %>% 
+  filter(is.na(urban_score_div)) %>% 
+  pull(communityID)
+
+# Computing the county average
+county.avg <- urban.score.div %>% 
+  group_by(city_eng) %>%
+  summarise(score = mean(urban_score_div, na.rm = TRUE))
+
+# Imputation
+for(i in 1:length(missing.id)){
+  city <- urban.score.div %>% 
+    filter(communityID == missing.id[i]) %>% 
+    pull(city_eng)
+  
+  proxy.score <- county.avg %>% 
+    filter(city_eng == city) %>% 
+    pull(score)
+  
+  urban.score.div[urban.score.div$communityID == missing.id[i], "urban_score_div"] <- proxy.score
+}
+
+# Checking for remaining NA
+summary(urban.score.div$urban_score_div)
+```
+
+
+```{r}
 ggplot(urban.score.div, aes(x=urban_score_div)) + 
   geom_density(aes(fill=year), alpha=0.7, adjust=2) + 
   scale_x_continuous(breaks = seq(0,10,1)) +
@@ -203,6 +215,6 @@ ggplot(urban.score.div, aes(x=urban_score_div)) +
   theme_light()
 ```
 ```{r}
-write_csv(urban.score.div, "score/diversity.csv")
+write_csv(urban.score.div, "../../Scores/Individual/diversity.csv")
 ```
 

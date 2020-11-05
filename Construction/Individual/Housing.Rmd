@@ -15,11 +15,11 @@ library(haven)
 ```
 
 ```{r}
-house.2011 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2011.dta")
-house.2013 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2013.dta")
-house.2015 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2015.dta")
-house.2018 <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/Housing_Characteristics_2018.dta")
-psu <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/PSU.dta") %>% 
+house.2011 <- read_dta("../../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../../data/Housing_Characteristics_2018.dta")
+psu <- read_dta("../../data/PSU.dta") %>% 
   dplyr::select(communityID,province_eng, city_eng, urban_nbs)
 ```
 
@@ -220,6 +220,6 @@ ggplot(urban.score.house, aes(x = urban_score_house)) +
 ```
 
 ```{r}
-write_csv(urban.score.house, "score/housing.csv")
+write_csv(urban.score.house, "../../Scores/Individual/housing.csv")
 ```
 

@@ -1,0 +1,138 @@
+---
+title: "Urbanicity Scale"
+author: "Shozen Dan, Nicholas Ortega"
+date: "8/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(multilevel)
+library(ltm)
+library(psych)
+library(tidyverse)
+library(haven)
+```
+
+```{r import datasets, message=FALSE, warning=FALSE}
+# Community data and PSU
+community<- read_dta("../../data/Community_2011.dta")
+psu <- read_dta("../../data/PSU.dta")
+
+# Scores
+econ <- read_csv("../../Scores/Community/economic.csv")
+social <- read_csv("../../Scores/Community/social.csv")
+pop <- read_csv("../../Scores/Community/population.csv")
+house <- read_csv("../../Scores/Community/housing.csv")
+trans <- read_csv("../../Scores/Community/transportation.csv")  
+edu <- read_csv("../../Scores/Community/education.csv")
+market <- read_csv("../../Scores/Community/market.csv")
+div <- read_csv("../../Scores/Community/diversity.csv")
+```
+
+```{r message=FALSE}
+# Join datasets
+urban.score <- econ %>% 
+  left_join(social) %>%
+  left_join(pop) %>%
+  left_join(house) %>%
+  left_join(trans) %>%
+  left_join(edu) %>% 
+  left_join(market) %>% 
+  left_join(div)
+
+items <- urban.score %>% 
+  select(
+    urban_score_pop, 
+    urban_score_edu,
+    urban_score_markets,
+    urban_score_trans,
+    urban_score_housing,
+    urban_score_econ,
+    urban_score_div, # Remove diversity
+    urban_score_soc
+  ) 
+```
+
+## Exploratory Factor Analysis
+```{r}
+# Factor analysis
+items.fa <- factanal(items, factors = 1)
+items.fa
+```
+Diversity, education, and social services show an extremely high value of uniqueness. Therefore we will remove them from our scale.
+
+```{r}
+items2 <- urban.score %>% 
+  select(
+    urban_score_pop, 
+    urban_score_markets,
+    urban_score_trans,
+    urban_score_housing,
+    urban_score_econ,
+    urban_score_div
+  ) 
+```
+
+```{r}
+# Factor analysis
+items2.fa <- factanal(items2, factors = 1)
+items2.fa
+```
+
+## Cronbach's Alpha
+```{r}
+ltm::cronbach.alpha(items2, na.rm=TRUE)
+```
+
+## Item-Scale Correlation
+```{r}
+itemscale.res <- multilevel::item.total(items2)
+itemscale.res
+```
+
+## Reciever Operator Characteristics
+```{r}
+library(plotROC)
+items2$communityID <- urban.score$communityID
+items2 <- items2 %>% 
+  left_join(select(psu, communityID, urban_nbs), by="communityID") %>%
+  mutate(urban_score = urban_score_econ + urban_score_pop + urban_score_housing + urban_score_trans + urban_score_markets + urban_score_div)
+```
+
+```{r fig.width = 6, fig.height = 6}
+ggplot(items2, aes(d = urban_nbs, m = urban_score)) + 
+  geom_roc() + 
+  style_roc()
+```
+```{r}
+threshold <- 31.3
+
+urban_flag <- items2 %>% 
+  mutate(
+    urban_flag = ifelse(urban_score >= threshold, 1, 0)
+  ) %>% 
+  pull(urban_flag)
+
+urban_nbs <- as.numeric(psu$urban_nbs)
+```
+
+```{r}
+item2.kappa <- psych::cohen.kappa(cbind(urban_flag, urban_nbs))
+item2.kappa$kappa
+```
+The Kappa Coefficient is 0.665 indicating substantial agreement between scale and urban_nbs (Interpretation of Kappa tend to be arbitrary)
+
+### Export Final Internally Validated Scale
+```{r}
+items2 %>% 
+  select(-urban_nbs) %>% 
+  write_csv("../../Scores/Community/urbanicity.csv")
+```
+
+
+
+

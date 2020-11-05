@@ -12,9 +12,9 @@ library(haven)
 
 ```{r message=FALSE}
 chns <- read_sas('~/Downloads/Master_UrbanIndex_201804/urban_11.sas7bdat')
-psu <- read_dta("~/Downloads/Stanford CARE SRI/data/diabetes/data/CHARLS/PSU.dta") %>% 
+psu <- read_dta("../../data/PSU.dta") %>% 
   dplyr::select(communityID, province_eng, city_eng, urban_nbs)
-charls <- read_csv('score/urbanicity.csv')
+charls <- read_csv('../../Scores/Individual/urbanicity.csv')
 ```
 
 ```{r}
