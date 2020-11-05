@@ -43,9 +43,10 @@ ggplot(urban.score, aes(x = urban_score)) +
   scale_x_continuous(breaks = seq(0,40,5)) +
   labs(
     title = "CHARLS Urbanicity Index",
-    subtitle = "Urbanicity",
+    subtitle = "Distribution by year",
     x = "Score",
-    y = "Density"
+    y = "Density",
+    caption = "CHARLS 2011 baseline ~ 2018"
   ) + 
   theme_light()
 ```
@@ -124,7 +125,7 @@ items2 <- urban.score.2011 %>%
   mutate(urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_div + urban_score_sani)
 ```
 
-```{r fig.width = 6, fig.height = 6}
+```{r fig.width = 5, fig.height = 5}
 ggplot(items2, aes(d = urban_nbs, m = urban_score)) + 
   geom_roc() + 
   style_roc()
@@ -156,9 +157,17 @@ score.df <- community.score %>%
   select(urban_score_com, urban_score_ind) %>%
   drop_na()
 
-ggplot(score.df, aes(x=urban_score_com, y=urban_score_ind)) + 
+ggplot(score.df, aes(y=urban_score_com, x=urban_score_ind)) + 
   geom_point() + 
-  geom_smooth(method = lm)
+  geom_smooth(method = lm) + 
+  labs(
+    title = "Internal Validation",
+    subtitle = "Correlation between comm. data scores and indiv. scores",
+    y = "Community Data Scores",
+    x = "Individual Data Scores",
+    caption = "CHARLS baseline wave(2011)"
+  ) +
+  theme_light()
 ```
 ```{r}
 mod <- lm(urban_score_com ~ urban_score_ind, score.df)

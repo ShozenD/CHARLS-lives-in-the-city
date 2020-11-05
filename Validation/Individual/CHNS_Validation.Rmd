@@ -121,7 +121,7 @@ urban_avg
 ```
 
 ```{r}
-ggplot(urban_avg, aes(x=chns_score, y=bootstrap_scores)) + 
+ggplot(urban_avg, aes(y=chns_score, x=bootstrap_scores)) + 
   geom_point(aes(color=factor(wave))) + 
   geom_smooth(method = lm, se=F) + 
   ggrepel::geom_text_repel(aes(label=province_eng)) +
@@ -130,7 +130,8 @@ ggplot(urban_avg, aes(x=chns_score, y=bootstrap_scores)) +
     title = "CHNS and CHARLS Scale Comparison",
     subtitle = "Adjusting for difference in sampling scheme",
     x = "CHNS Urbanicity Score",
-    y = "CHARLS Urbanicity Score"
+    y = "CHARLS Urbanicity Score",
+    fill = "Survey Year"
   )
 ```
 ```{r}

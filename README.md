@@ -1,7 +1,11 @@
-# CHARLS-lives-in-the-city
+# CHARLS Urbanicity Scale
 
 ## Introduction
 This is the code repository for the paper, *Quantifying the latent urban dimension: Development of an Urbanicity Scale for the China Health and Retirement Longitudinal Study*. This repository contains the R codes used for the construction and validation of the scale. It also contains (will contain) a detaild documentation of the scale construction scheme.
+
+## Authors
+* [**Shozen Dan**](https://www.linkedin.com/in/shozendan/), Stanford CARE SRI 2020, University of California Davis (Statistics), Keio University (Environmental and Informational Studies)
+* [**Nicholas Ortega**](https://www.linkedin.com/in/nicholasmo/), Stanford CARE SRI 2020, University of California Los Angelese (Statistics)
 
 ## Contents
 The repository is stuctured as follows:
@@ -15,7 +19,20 @@ The repository is stuctured as follows:
   </li>
 </ul>
 
-## Overview
-(Scale Overview)
+All three directories are a set of directories named **Individual** and **Community**. They indicate whether the directory contains code/scores for aggregated individual data or 2011 community data.
 
-*Last Update: Nov. 4th, 2020 by Shozen Dan*
+## Overview
+![Scale Distribution](figures/final_dist.png)
+![Item Distributions](figures/distributions.png)
+
+## Internal Validation
+![Comm & Indiv. Scatter](figures/internal_valid_scatter.png)
+
+### Reciever Operator Characteristics
+![Gold Standard ROC](figures/internal_valid_roc.png)
+
+## External Validation
+### China Health and Nutrition Survey
+![CHNS](figures/external_valid_chns.png)
+
+*Last Update: Nov. 5th, 2020 by Shozen Dan*

@@ -150,12 +150,12 @@ urban.score.sani <- rbind(
 
 ggplot(urban.score.sani, aes(x = urban_score_sani)) + 
   geom_density(aes(fill = year), alpha=0.7) + 
-  scale_x_continuous(breaks = seq(0,10,1)) +
+  scale_x_continuous(breaks = seq(0,10,1), limits = c(0,10)) +
   labs(
-    title = "CHARLS Urbanicity Index",
     subtitle = "Sanitation",
     x = "Score",
-    y = "Density"
+    y = "Density",
+    fill="Year"
   ) + 
   theme_light()
 ```
