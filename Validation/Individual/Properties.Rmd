@@ -1,0 +1,106 @@
+---
+title: "Scale Properties"
+author: "Shozen Dan"
+date: "11/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+
+```{r import scale, message=FALSE}
+scale <- read.csv("../../Scores/Individual/urbanicity.csv")
+head(scale)
+```
+
+## Test Retest Reliability
+```{r}
+scale.2011 <- scale %>% filter(year == 2011)
+scale.2013 <- scale %>% filter(year == 2013)
+scale.2015 <- scale %>% filter(year == 2015)
+scale.2018 <- scale %>% filter(year == 2018)
+```
+
+### 2011 ~ 2013
+```{r}
+scores.2011 <- scale.2011 %>% filter(communityID %in% scale.2013$communityID) %>% pull(urban_score)
+scores.2013 <- scale.2013$urban_score
+test1 <- cor.test(scores.2011, scores.2013)
+test1
+```
+
+### 2013 ~ 2015
+```{r}
+scores.2015 <- scale.2015 %>% filter(communityID %in% scale.2013$communityID) %>% pull(urban_score)
+test2 <- cor.test(scores.2013, scores.2015)
+test2
+```
+
+### 2015 ~ 2018
+```{r}
+scores.2015 <- scale.2015 %>% filter(communityID %in% scale.2018$communityID) %>% pull(urban_score)
+scores.2018 <- scale.2018$urban_score
+test3 <- cor.test(scores.2015, scores.2018)
+test3
+```
+
+### 2011 ~ 2018
+```{r}
+scores.2018 <- scale.2018 %>% filter(communityID %in% scale.2011$communityID) %>% pull(urban_score)
+scores.2011 <- scale.2011 %>% filter(communityID %in% scale.2018$communityID) %>% pull(urban_score)
+test4 <- cor.test(scores.2011, scores.2018)
+test4
+```
+
+## Justification for Data Imputation
+```{r}
+house.2011 <- read_dta("../../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../../data/Housing_Characteristics_2018.dta")
+```
+
+```{r}
+# Average number of households sampled within each community
+avg.sample.2011 <- house.2011 %>% 
+  group_by(communityID) %>% 
+  summarise(n = n()) %>% 
+  pull(n) %>%
+  mean()
+
+avg.sample.2013 <- house.2013 %>%
+  group_by(communityID) %>% 
+  summarise(n = n()) %>% 
+  pull(n) %>%
+  mean()
+
+avg.sample.2015 <- house.2015 %>%
+  group_by(communityID) %>% 
+  summarise(n = n()) %>% 
+  pull(n) %>%
+  mean()
+
+avg.sample.2018 <- house.2018 %>%
+  group_by(communityID) %>% 
+  summarise(n = n()) %>% 
+  pull(n) %>%
+  mean()
+
+mean(avg.sample.2011, avg.sample.2013, avg.sample.2015, avg.sample.2018)
+```
+
+
+
+
+
+
+
+
+

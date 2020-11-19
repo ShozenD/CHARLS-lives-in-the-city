@@ -12,9 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r message=FALSE}
 library(multilevel)
 library(ltm)
-library(psych)
 library(tidyverse)
 library(haven)
+library(FactoMineR)
+library(factoextra)
 ```
 
 ```{r import datasets, message=FALSE, warning=FALSE}
@@ -45,7 +46,7 @@ urban.score <- econ %>%
   left_join(div)
 
 items <- urban.score %>% 
-  select(
+  dplyr::select(
     urban_score_pop, 
     urban_score_edu,
     urban_score_markets,
@@ -67,7 +68,7 @@ Diversity, education, and social services show an extremely high value of unique
 
 ```{r}
 items2 <- urban.score %>% 
-  select(
+  dplyr::select(
     urban_score_pop, 
     urban_score_markets,
     urban_score_trans,
@@ -83,22 +84,32 @@ items2.fa <- factanal(items2, factors = 1)
 items2.fa
 ```
 
+```{r}
+res.pca <- PCA(items, graph=F)
+# Control variable colors using their contributions
+fviz_pca_var(res.pca, col.var="contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping
+             )
+```
+
+
 ## Cronbach's Alpha
 ```{r}
-ltm::cronbach.alpha(items2, na.rm=TRUE)
+ltm::cronbach.alpha(items, na.rm=TRUE)
 ```
 
 ## Item-Scale Correlation
 ```{r}
-itemscale.res <- multilevel::item.total(items2)
+itemscale.res <- multilevel::item.total(items)
 itemscale.res
 ```
 
 ## Reciever Operator Characteristics
 ```{r}
 library(plotROC)
-items2$communityID <- urban.score$communityID
-items2 <- items2 %>% 
+items$communityID <- urban.score$communityID
+items <- items %>% 
   left_join(select(psu, communityID, urban_nbs), by="communityID") %>%
   mutate(urban_score = urban_score_econ + urban_score_pop + urban_score_housing + urban_score_trans + urban_score_markets + urban_score_div)
 ```

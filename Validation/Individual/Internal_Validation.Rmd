@@ -8,6 +8,8 @@ output: html_document
 ```{r, message=FALSE}
 library(tidyverse)
 library(haven)
+library(FactoMineR)
+library(factoextra)
 ```
 
 ```{r, message=FALSE}
@@ -17,7 +19,7 @@ house <- read_csv("../../Scores/Individual/housing.csv")
 econ <- read_csv("../../Scores/Individual/economic.csv")
 sani <- read_csv("../../Scores/Individual/sanitation.csv")
 # insr <- read_csv("../../Scores/Individual/insurance.csv")
-div <- read_csv("../../Scores/Individual/diversity.csv")
+# div <- read_csv("../../Scores/Individual/diversity.csv")
 psu <- read_dta("../../data/PSU.dta") %>% 
   dplyr::select(communityID, province_eng, city_eng, urban_nbs)
 
@@ -27,35 +29,67 @@ urban.score <- comm %>%
   left_join(econ, by=c("communityID","year")) %>% 
   left_join(sani, by=c("communityID","year")) %>% 
   # left_join(insr, by=c("communityID","year")) %>% 
-  left_join(div, by=c("communityID","year")) %>% 
+  # left_join(div, by=c("communityID","year")) %>% 
   left_join(psu, by="communityID") %>% 
   mutate(urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_sani)
 
 urban.score$year <- as.factor(urban.score$year)
 urban.score$urban_flag <- as.factor(urban.score$urban_nbs)
 
-write_csv(urban.score, "../../Scores/Individual/urbanicity.csv")
+urban.score %>% 
+  select(communityID, year, urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani, urban_score) %>% 
+  write_csv("../../Scores/Individual/urbanicity.csv")
 ```
 
 ```{r}
 ggplot(urban.score, aes(x = urban_score)) + 
   geom_density(aes(fill=year), alpha=0.7) + 
-  scale_x_continuous(breaks = seq(0,40,5)) +
+  scale_x_continuous(breaks = seq(0,50,5), limits=c(0,40)) +
   labs(
-    title = "CHARLS Urbanicity Index",
-    subtitle = "Distribution by year",
     x = "Score",
     y = "Density",
-    caption = "CHARLS 2011 baseline ~ 2018"
+    fill = "Year"
   ) + 
   theme_light()
 ```
 
 ## Exploratory Factor Analysis
 ```{r}
-items <- urban.score %>% select(urban_score_comm, urban_score_house, urban_score_econ, urban_score_div, urban_score_sani)
-items.fa <- factanal(items, factors = 1)
+items <- urban.score %>% 
+  select(urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani) %>% 
+  rename(Communications = urban_score_comm, Housing = urban_score_house, Economy = urban_score_econ, Sanitation = urban_score_sani)
+
+
+# items.fa <- factanal(items, factors = 1, rotation = "varimax", scores = "regression")
+items.cor <- cor(items)
+items.fa <- psych::fa(r = items.cor, nfactors=3)
+items.eig <- data.frame(idx = 1:4, factors = c("factor 1", "factor 2", "factor 3", "factor 4"), eigen_values = items.fa$e.values)
+
 items.fa
+```
+
+```{r}
+ggplot(items.eig, aes(x = factors, y = eigen_values)) + 
+  geom_bar(stat = "identity", width = 0.4) +
+  geom_point() +
+  geom_text(aes(label = round(eigen_values, 2)), vjust = -1) +
+  geom_line(aes(x = idx, y = eigen_values)) + 
+  geom_hline(yintercept = 1, linetype = 'dashed') +
+  ylim(0, 3.2) +
+  labs(x="Factors", y="Eigenvalue") + 
+  theme_light()
+```
+
+
+```{r}
+res.pca <- PCA(items, graph=F)
+fviz_screeplot(res.pca, addlabels = TRUE, ylim = c(0, 80))
+
+# Control variable colors using their contributions
+fviz_pca_var(res.pca, col.var="contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping
+             )
 ```
 
 ## Cronbachs Alpha
@@ -122,17 +156,18 @@ library(plotROC)
 urban.score.2011$communityID <- comm %>% filter(year == 2011) %>% pull(communityID)
 items2 <- urban.score.2011 %>% 
   left_join(select(psu, communityID, urban_nbs), by="communityID") %>%
-  mutate(urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_div + urban_score_sani)
+  mutate(urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_sani)
 ```
 
-```{r fig.width = 5, fig.height = 5}
+```{r fig.width = 4.7, fig.height = 4.7}
 ggplot(items2, aes(d = urban_nbs, m = urban_score)) + 
   geom_roc() + 
-  style_roc()
+  style_roc() + 
+  theme(text = element_text(size=16))
 ```
 
 ```{r}
-threshold <- 18.5
+threshold <- 14.7
 
 urban_flag <- items2 %>% 
   mutate(urban_flag = ifelse(urban_score >= threshold, 1, 0)) %>% 
@@ -150,25 +185,41 @@ item2.kappa$kappa
 ```{r message=FALSE}
 community.score <- read_csv("../../Scores/Community/urbanicity.csv")
 individual.score <- urban.score.2011 %>% 
-  mutate(urban_score = urban_score_comm+urban_score_house+urban_score_econ+urban_score_div+urban_score_sani)
+  mutate(urban_score = urban_score_comm+urban_score_house+urban_score_econ+urban_score_sani)
 
 score.df <- community.score %>%
   left_join(individual.score, by="communityID", suffix = c("_com", "_ind")) %>%
-  select(urban_score_com, urban_score_ind) %>%
   drop_na()
 
 ggplot(score.df, aes(y=urban_score_com, x=urban_score_ind)) + 
   geom_point() + 
   geom_smooth(method = lm) + 
   labs(
-    title = "Internal Validation",
-    subtitle = "Correlation between comm. data scores and indiv. scores",
-    y = "Community Data Scores",
-    x = "Individual Data Scores",
-    caption = "CHARLS baseline wave(2011)"
+    y = "Community",
+    x = "Aggregated Individual"
   ) +
   theme_light()
 ```
+
+Examine the outliers
+```{r}
+score.df %>%
+  filter(urban_score_com <15 & urban_score_ind > 12) %>%
+  left_join(psu, by = "communityID") %>%
+  select(province_eng, city_eng)
+
+score.df %>%
+  left_join(psu, by = "communityID") %>%
+  filter(urban_score_ind < 11 & urban_score_com < 15) %>% 
+  select(province_eng, city_eng)
+
+score.df %>%
+  left_join(psu, by = "communityID") %>%
+  filter(urban_score_ind > 10 & urban_score_ind < 11 & urban_score_com > 37) %>% 
+  select(province_eng, city_eng, urban_score_ind)
+```
+
+
 ```{r}
 mod <- lm(urban_score_com ~ urban_score_ind, score.df)
 summary(mod)
