@@ -9,12 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r message=FALSE}
 library(tidyverse)
 library(haven)
 ```
 
-```{r}
+```{r import datasets}
 income.2011 <- read_dta("../../data/Household_Income_2011.dta")
 income.2013 <- read_dta("../../data/Household_Income_2013.dta")
 income.2015 <- read_dta("../../data/Household_Income_2015.dta")
@@ -23,6 +23,7 @@ psu <- read_dta("../../data/PSU.dta")
 ```
 
 ```{r, message=FALSE}
+# 2011
 div.2011 <- income.2011 %>% 
   select(communityID, ge004, ge006, ge007, starts_with("ge009")) %>% 
   mutate(
@@ -44,10 +45,11 @@ div.2011 <- income.2011 %>%
   ) %>% 
   group_by(communityID) %>% 
   summarise(
-    median_monthly_PCE = median(monthly_PCE, na.rm=T)
+    sd_monthly_PCE = sd(monthly_PCE, na.rm=T)
   ) %>%
-  select(communityID, median_monthly_PCE)
+  select(communityID, sd_monthly_PCE)
 
+# 2013
 div.2013 <- income.2013 %>% 
   select(communityID, ge004, ge006, ge007, starts_with("ge009")) %>% 
   mutate(
@@ -69,10 +71,11 @@ div.2013 <- income.2013 %>%
   ) %>% 
   group_by(communityID) %>% 
   summarise(
-    median_monthly_PCE = median(monthly_PCE, na.rm=T)
+    sd_monthly_PCE = sd(monthly_PCE, na.rm=T)
   ) %>%
-  select(communityID, median_monthly_PCE)
+  select(communityID, sd_monthly_PCE)
 
+# 2015
 div.2015 <- income.2015 %>% 
   select(communityID, ge004, ge006, ge007, starts_with("ge009")) %>% 
   mutate(
@@ -94,10 +97,11 @@ div.2015 <- income.2015 %>%
   ) %>% 
   group_by(communityID) %>% 
   summarise(
-    median_monthly_PCE = median(monthly_PCE, na.rm=T)
+    sd_monthly_PCE = sd(monthly_PCE, na.rm=T)
   ) %>%
-  select(communityID, median_monthly_PCE)
+  select(communityID, sd_monthly_PCE)
 
+# 2018
 div.2018 <- income.2018 %>% 
   select(communityID, ge004, ge006_w4, ge007_w4, starts_with("ge009")) %>% 
   mutate(
@@ -119,9 +123,9 @@ div.2018 <- income.2018 %>%
   ) %>% 
   group_by(communityID) %>% 
   summarise(
-    median_monthly_PCE = median(monthly_PCE, na.rm=T)
+    sd_monthly_PCE = sd(monthly_PCE, na.rm=T)
   ) %>%
-  select(communityID, median_monthly_PCE)
+  select(communityID, sd_monthly_PCE)
 ```
 
 ```{r}
@@ -132,37 +136,37 @@ urban.score.div <- rbind(
   mutate(div.2018, year="2018")
 )
 
-median.score <- median(urban.score.div$median_monthly_PCE, na.rm=T)
-min.score <- min(urban.score.div$median_monthly_PCE, na.rm=T)
-max.score <- max(urban.score.div$median_monthly_PCE, na.rm=T)
+median.score <- median(urban.score.div$sd_monthly_PCE, na.rm=T)
+min.score <- min(urban.score.div$sd_monthly_PCE, na.rm=T)
+max.score <- max(urban.score.div$sd_monthly_PCE, na.rm=T)
 
-seq(from=min.score, to=median.score, length.out = 10)
-seq(from=median.score, to=max.score, length.out = 11)
+cutoff.lower <- round(seq(from=min.score, to=median.score, length.out = 11), 2)
+cutoff.higher <- round(seq(from=median.score, to=max.score, length.out = 10), 2)
 
 urban.score.div <- urban.score.div %>% 
   mutate(
     urban_score_div = case_when(
-      median_monthly_PCE < 1 ~ 0,
-      median_monthly_PCE < 61.11 ~ 0.5,
-      median_monthly_PCE < 122.22 ~ 1,
-      median_monthly_PCE < 183.33 ~ 1.5,
-      median_monthly_PCE < 244.44 ~ 2,
-      median_monthly_PCE < 305.56 ~ 2.5,
-      median_monthly_PCE < 366.67 ~ 3,
-      median_monthly_PCE < 427.78 ~ 3.5,
-      median_monthly_PCE < 488.89 ~ 4,
-      median_monthly_PCE < 550.0 ~ 4.5,
-      median_monthly_PCE < 1130.2 ~ 5,
-      median_monthly_PCE < 1710.4 ~ 5.5,
-      median_monthly_PCE < 2290.6 ~ 6,
-      median_monthly_PCE < 2870.8 ~ 6.5,
-      median_monthly_PCE < 3451.0 ~ 7,
-      median_monthly_PCE < 4031.2 ~ 7.5,
-      median_monthly_PCE < 4611.4 ~ 8,
-      median_monthly_PCE < 5191.6 ~ 8.5,
-      median_monthly_PCE < 5771.8 ~ 9,
-      median_monthly_PCE < 6352.0 ~ 9.5,
-      median_monthly_PCE >= 6352.0 ~ 10,
+      sd_monthly_PCE < cutoff.lower[1] ~ 0,
+      sd_monthly_PCE < cutoff.lower[2] ~ 0.5,
+      sd_monthly_PCE < cutoff.lower[3] ~ 1,
+      sd_monthly_PCE < cutoff.lower[4] ~ 1.5,
+      sd_monthly_PCE < cutoff.lower[5] ~ 2,
+      sd_monthly_PCE < cutoff.lower[6] ~ 2.5,
+      sd_monthly_PCE < cutoff.lower[7] ~ 3,
+      sd_monthly_PCE < cutoff.lower[8] ~ 3.5,
+      sd_monthly_PCE < cutoff.lower[9] ~ 4,
+      sd_monthly_PCE < cutoff.lower[10] ~ 4.5,
+      sd_monthly_PCE < cutoff.higher[11] ~ 5,
+      sd_monthly_PCE < cutoff.higher[2] ~ 5.5,
+      sd_monthly_PCE < cutoff.higher[3] ~ 6,
+      sd_monthly_PCE < cutoff.higher[4] ~ 6.5,
+      sd_monthly_PCE < cutoff.higher[5] ~ 7,
+      sd_monthly_PCE < cutoff.higher[6] ~ 7.5,
+      sd_monthly_PCE < cutoff.higher[7] ~ 8,
+      sd_monthly_PCE < cutoff.higher[8] ~ 8.5,
+      sd_monthly_PCE < cutoff.higher[9] ~ 9,
+      sd_monthly_PCE < cutoff.higher[10] ~ 9.5,
+      sd_monthly_PCE >= cutoff.higher[10] ~ 10,
     ) 
   ) %>% 
   select(communityID, year, urban_score_div)
@@ -201,11 +205,10 @@ for(i in 1:length(missing.id)){
 summary(urban.score.div$urban_score_div)
 ```
 
-
 ```{r}
 ggplot(urban.score.div, aes(x=urban_score_div)) + 
   geom_density(aes(fill=year), alpha=0.7, adjust=2) + 
-  scale_x_continuous(breaks = seq(0,10,1)) +
+  scale_x_continuous(breaks = seq(0,10,1), limits=c(0,10)) +
   labs(
     subtitle = "Diversity",
     x = "Score",

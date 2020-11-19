@@ -302,7 +302,7 @@ ggplot(urban.score.econ, aes(x=urban_score_econ)) +
   geom_density(aes(fill=year), alpha=0.7) + 
   scale_x_continuous(breaks = seq(0,10,1), limits=c(0,10)) +
   labs(
-    subtitle = "Economic",
+    subtitle = "Economy",
     x = "Score",
     y = "Density",
     fill = "Year"
