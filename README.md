@@ -25,29 +25,37 @@ The repository is stuctured as follows:
 All three directories are a set of directories named **Individual** and **Community**. They indicate whether the directory contains code/scores for aggregated individual data or 2011 community data.
 
 ## Overview
-<img src="figures/final_dist.png" alt="Scale Distribution" width="450"></img>
-<img src="figures/Component_Distributions.png" alt="Component Distributions" width="700">
+<span style="text-align: center; display: block">
+  <img src="figures/final_dist.png" alt="Scale Distribution" width="450"></img>
+  <img src="figures/Component_Distributions.png" alt="Component Distributions" width="700">
+</span>
 
 ## Internal Validation
-<img src="figures/internal_valid_scatter.png" alt="Comm. & Indiv." width="450"></img>
+<span style="text-align: center; display: block">
+  <img src="figures/internal_valid_scatter.png" alt="Comm. & Indiv." width="450"></img>
+</span>
 
 The figure above displays the relationship between our scale (aggregated individual scores) and the scale constructed from the community data file for 2011. Overall, the two scales demonstrate a strong linear relationship with Pearson’s correlation coefficient at 0.82 (95% CI: 0.79, 0.85). However, there were several outliers for communities within Sichuan, Neimengu, Suzhou, Heilongjiang, and Hebei provinces.
 
 ### Reciever Operator Characteristics
-<img src="figures/internal_valid_roc.png" alt="Gold Standard Comparison" width="450"></img>
+<span style="text-align: center; display: block">
+  <img src="figures/internal_valid_roc.png" alt="Gold Standard Comparison" width="450"></img>
+</span>
 
 Using receiver operator characteristic curve determination of maximum specificity and sensitivity, we dichotomized communities into urban and rural categories using a cutoff point of 14.7. The kappa statistic for agreement beyond chance against the "Gold Standard" was 0.66 which can be interpreted as very good, indicating that our scale has good criterion validity. 
 
 ### Construct Validity
 The construct validity a scale is the extent to which it accomplishes the purpose claimed for it. We demonstrate the validity of our scale, as well as provide a example of how it may be utilized, by examining the effect of baseline urbanicity and urbanicity change on the likelihood of becoming over weight (BMI >= 25).
-
-<img src="figures/const_valid.png" alt="Comm. & Indiv." width="450"></img>
+<span style="text-align: center; display: block">
+  <img src="figures/const_valid.png" alt="Comm. & Indiv." width="450"></img>
+</span>
 
 ## External Validation
 ### China Health and Nutrition Survey
 As a way of assessing the validity of our scale using external sources, we compared our scale to the CHNS urbanicity scale. There is an overlap between the two studies in 12 provinces for the years 2011 and 2015. In order to account for the difference in sampling strategy, we adopted a Monte Carlo method to simulate the sampling strategy of CHNS.
-
-<img src="figures/CHNS_Comparison.png" alt="Component Distributions" width="700">
+<span style="text-align: center; display: block">
+  <img src="figures/CHNS_Comparison.png" alt="Component Distributions" width="700">
+</span>
 
 ## Contact
 * **Shozen Dan**: shozendn@stanford.edu
