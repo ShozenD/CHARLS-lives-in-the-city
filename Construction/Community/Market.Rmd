@@ -25,6 +25,8 @@ community <- community %>%
 
 ## Market Score
 ```{r}
+N <- nrow(community)
+
 market.score <- community %>% 
   select(
     communityID, 
@@ -60,6 +62,21 @@ market.score <- community %>%
   mutate(
     urban_score_markets = 10*(conveni + farmer + super)/9,
   )
+
+sum(is.na(community$jb028_1_11_) & is.na(community$jb028_2_11_))/N # Number of NAs for convenience stores
+sum(is.na(community$jb028_1_12_) & is.na(community$jb028_2_12_))/N # Number of NAs for farrmers' markets
+sum(is.na(community$jb028_1_13_) & is.na(community$jb028_2_13_))/N # Number of NAs for super markets
+
+# check the number of NAs imputed with 0
+na.rows <- community %>% 
+  select(jb028_1_11_,jb028_1_12_,jb028_1_13_,jb028_2_11_,jb028_2_12_,jb028_2_13_) %>% 
+  drop_na() %>% 
+  nrow()
+(nrow(community) - na.rows)/nrow(community)
+
+community %>% 
+  select(jb028_1_11_,jb028_1_12_,jb028_1_13_,jb028_2_11_,jb028_2_12_,jb028_2_13_) %>%
+  is.na() %>% sum()
 ```
 
 ### Visualize

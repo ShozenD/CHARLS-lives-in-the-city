@@ -77,6 +77,9 @@ missing.id <- econ.score %>%
   filter(is.na(urban_score_econ)) %>% 
   pull(communityID)
 
+length(missing.id)
+length(missing.id)/nrow(econ.score)
+
 # Computing the county average
 county.avg <- econ.score %>% 
   group_by(city_eng) %>%

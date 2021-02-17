@@ -1,0 +1,87 @@
+---
+title: "Reciever Operator Characteristics"
+author: "Shozen Dan"
+date: "2/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=F}
+## Import libraries
+library(tidyverse)
+library(haven)
+library(plotROC)
+library(pROC)
+
+## Import Dataset
+df.ubs <- read_csv("../../Scores/Individual/urbanicity_weighted.csv")
+psu <- read_dta("../../data/PSU.dta") %>% 
+  dplyr::select(communityID, province_eng, city_eng, urban_nbs)
+# Include the urban_nbs flag
+df.ubs.2011 <- df.ubs %>% 
+  filter(year == 2011) %>% 
+  left_join(psu, by="communityID")
+```
+
+## ROC
+```{r}
+## Unweighted
+# Plot ROC Curve
+plt.unwgt <- ggplot(df.ubs.2011, aes(d = urban_nbs, m = urban_score)) + 
+  geom_roc() + 
+  style_roc() + 
+  theme(
+    aspect.ratio = 1
+  )
+plt.unwgt 
+
+# Get ROC Stats
+roc.unwgt <- df.ubs.2011 %>% 
+  roc(urban_nbs, urban_score, ci=TRUE) %>% 
+  coords(ret = "all", transpose = FALSE)
+
+th.best.unwgt <- roc.unwgt[which.max(roc.unwgt$accuracy),1] # Find best threshold
+
+# Get AUC
+calc_auc(plt.unwgt)
+
+## Weighted
+plt.wgt <- ggplot(df.ubs.2011, aes(d = urban_nbs, m = urban_score_wgt)) + 
+  geom_roc() + 
+  style_roc() + 
+  theme(
+    aspect.ratio = 1
+  )
+# Plot ROC Curve
+plt.wgt
+# Get ROC Stats
+roc.wgt <- df.ubs.2011 %>% 
+  roc(urban_nbs, urban_score_wgt, ci=T) %>% 
+  coords(ret = "all", transpose = F)
+
+th.best.wgt <- roc.wgt[which.max(roc.wgt$accuracy),1] # Find best threshold
+
+# Get AUC
+calc_auc(plt.wgt)
+```
+
+## Kappa Statistics
+```{r}
+df.ubs.2011 <- df.ubs.2011 %>% 
+  mutate(
+    urban_flag_unwgt = ifelse(urban_score >= th.best.unwgt,1,0),
+    urban_flag_wgt = ifelse(urban_score_wgt >= th.best.wgt,1,0)
+  )
+
+# Unweighted
+kappa.unwgt <- psych::cohen.kappa(cbind(df.ubs.2011$urban_flag_unwgt,df.ubs.2011$urban_nbs))
+kappa.unwgt$kappa
+
+# Weighted
+kappa.wgt <- psych::cohen.kappa(cbind(df.ubs.2011$urban_flag_wgt,df.ubs.2011$urban_nbs))
+kappa.wgt$kappa
+```
+

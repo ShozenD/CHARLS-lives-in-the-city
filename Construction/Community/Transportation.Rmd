@@ -25,6 +25,8 @@ community <- community %>%
 
 ## Transportation Score
 ```{r}
+N.comm <- nrow(community) # total number of commmunities
+
 trans.score <- community %>% 
   select(communityID, jb001, jb003, jb004, jb005, city_eng, urban_nbs) %>% 
   mutate_at(c(1:4), ~replace(., is.na(.), 0)) %>% # Assume NAs are 0 
@@ -51,6 +53,20 @@ trans.score <- community %>%
     ),
     urban_score_trans = (road_type + bus_stop + train_stop)*1.6666
   )
+
+sum(is.na(community$ja001)) # Number of NA road type info
+sum(is.na(community$ja003) | community$ja003 == -999) # Number of NA bus info
+sum(is.na(community$jb005))/N.comm # Number of NA train station info
+
+na.rows <- community %>% 
+  select(jb001, jb003, jb004, jb005) %>% 
+  drop_na() %>% 
+  filter(jb003 != -999)
+(nrow(community) - nrow(na.rows))/nrow(community)
+
+community %>% 
+  select(jb001, jb003, jb004, jb005) %>% 
+  is.na() %>% sum()
 ```
 
 ### Visualize

@@ -1,0 +1,72 @@
+---
+title: "Sanitation"
+author: "Shozen Dan"
+date: "1/29/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r}
+house.2011 <- read_dta("../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../data/Housing_Characteristics_2018.dta")
+```
+
+
+```{r message=FALSE}
+sani.2011 <- house.2011 %>% 
+  select(communityID, i012_3, i014s2, i015) %>%
+  mutate(
+    indoor.flushable.toilet = ifelse((i012_3 >= 1 & i015 == 1), 1, 0),
+    indoor.unflushable.toilet = ifelse(i012_3 >= 1 & i015 == 2, 1, 0)
+  ) %>% select(communityID, indoor.flushable.toilet, indoor.unflushable.toilet)
+
+sum(is.na(sani.2011$indoor.flushable.toilet))
+
+sani.2011 <- house.2011 %>% 
+  select(communityID, i012_3, i014s2, i015) %>%
+  mutate(
+    indoor.flushable.toilet = ifelse((i015 == 1 && i012_3 >= 1), 1, 0),
+    indoor.unflushable.toilet = ifelse(i015 == 2 && i012_3 >= 1, 1, 0)
+  ) %>% select(communityID, i012_3, i014s2, indoor.flushable.toilet, indoor.unflushable.toilet)
+
+
+sani.2013 <- house.2013 %>% 
+  select(communityID, i012_3, i014s2, i015) %>%
+  mutate(
+    indoor.flushable.toilet = ifelse((i012_3 >= 1 & i015 == 1), 1, 0),
+    indoor.unflushable.toilet = ifelse(i012_3 >= 1 & i015 == 2, 1, 0)
+  ) %>% select(communityID, indoor.flushable.toilet, indoor.unflushable.toilet)
+
+sani.2015 <- house.2015 %>% 
+  select(communityID, i012_3, i014s2, i015) %>%
+  mutate(
+    indoor.flushable.toilet = ifelse((i012_3 >= 1 & i015 == 1), 1, 0),
+    indoor.unflushable.toilet = ifelse(i012_3 >= 1 & i015 == 2, 1, 0)
+  ) %>% select(communityID, indoor.flushable.toilet, indoor.unflushable.toilet)
+
+sani.2018 <- house.2018 %>% 
+  select(communityID, i012_3, i014, i015) %>%
+  mutate(
+    indoor.flushable.toilet = ifelse((i012_3 >= 1 & i015 == 1), 1, 0),
+    indoor.unflushable.toilet = ifelse(i012_3 >= 1 & i015 == 2, 1, 0)
+  ) %>% select(communityID, indoor.flushable.toilet, indoor.unflushable.toilet)
+
+sani.overall <- rbind(sani.2011, sani.2013, sani.2015, sani.2018)
+
+sum(is.na(sani.overall$indoor.flushable.toilet))
+sum(is.na(sani.overall$indoor.flushable.toilet))/nrow(sani.overall)
+
+sum(is.na(sani.overall$indoor.unflushable.toilet))
+sum(is.na(sani.overall$indoor.unflushable.toilet))/nrow(sani.overall)
+```
+

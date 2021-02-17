@@ -1,0 +1,88 @@
+---
+title: 'Assessment: Housing'
+author: "Shozen Dan"
+date: "1/29/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+# Import library
+library(tidyverse)
+library(haven)
+```
+
+```{r message=FALSE}
+# Import data
+house.2011 <- read_dta("../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../data/Housing_Characteristics_2018.dta")
+```
+
+```{r}
+house.2011 <- house.2011 %>% 
+  select(communityID, i004, i012_3, i015, i017, i018, i019, i022) %>%
+  mutate(
+    concrete.house = ifelse(i004 == 1, 1, 0),
+    running.water = ifelse(i017 == 1, 1, 0),
+    cooking.gas = ifelse(i022 == 2 | i022 == 4, 1, 0),
+    flushable.toilet = ifelse(i012_3 == 1 & i015 == 1, 1, 0),
+    inhouse.bath = ifelse(i018 == 1 | i018 == 2, 1, 0)
+  ) %>%
+  select(communityID, concrete.house, running.water, cooking.gas, flushable.toilet, inhouse.bath)
+
+house.2013 <- house.2013 %>% 
+  select(communityID, i004, i012_3, i015, i017, i018, i019, i022) %>%
+  mutate(
+    concrete.house = ifelse(i004 == 1, 1, 0),
+    running.water = ifelse(i017 == 1, 1, 0),
+    cooking.gas = ifelse(i022 == 2 | i022 == 4, 1, 0),
+    flushable.toilet = ifelse(i012_3 == 1 & i015 == 1, 1, 0),
+    inhouse.bath = ifelse(i018 == 1 | i018 == 2, 1, 0)
+  ) %>%
+  select(communityID, concrete.house, running.water, cooking.gas, flushable.toilet, inhouse.bath)
+
+house.2015 <- house.2015 %>% 
+  select(communityID, i004, i012_3, i015, i017, i018, i019, i022) %>%
+  mutate(
+    concrete.house = ifelse(i004 == 1, 1, 0),
+    running.water = ifelse(i017 == 1, 1, 0),
+    cooking.gas = ifelse(i022 == 2 | i022 == 4, 1, 0),
+    flushable.toilet = ifelse(i012_3 == 1 & i015 == 1, 1, 0),
+    inhouse.bath = ifelse(i018 == 1 | i018 == 2, 1, 0)
+  ) %>%
+  select(communityID, concrete.house, running.water, cooking.gas, flushable.toilet, inhouse.bath)
+
+house.2018 <- house.2018 %>% 
+  select(communityID, i004, i012_3, i015, i017, i018, i019, i022_w4) %>%
+  mutate(
+    concrete.house = ifelse(i004 == 1, 1, 0),
+    running.water = ifelse(i017 == 1, 1, 0),
+    cooking.gas = ifelse(i022_w4 == 2 | i022_w4 == 4, 1, 0),
+    flushable.toilet = ifelse(i012_3 == 1 & i015 == 1, 1, 0),
+    inhouse.bath = ifelse(i018 == 1 | i018 == 2, 1, 0)
+  ) %>%
+  select(communityID, concrete.house, running.water, cooking.gas, flushable.toilet, inhouse.bath)
+
+house.overall <- rbind(house.2011, house.2013, house.2013, house.2015, house.2018)
+
+sum(is.na(house.2011$concrete.house))
+sum(is.na(house.2011$concrete.house))/nrow(house.overall)
+
+sum(is.na(house.2011$running.water))
+sum(is.na(house.2011$running.water))/nrow(house.overall)
+
+sum(is.na(house.2011$cooking.gas))
+sum(is.na(house.2011$cooking.gas))/nrow(house.overall)
+
+sum(is.na(house.2011$flushable.toilet))
+sum(is.na(house.2011$flushable.toilet))/nrow(house.overall)
+
+sum(is.na(house.2011$inhouse.bath))
+sum(is.na(house.2011$inhouse.bath))/nrow(house.overall)
+```
+

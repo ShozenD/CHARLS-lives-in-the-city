@@ -1,0 +1,124 @@
+---
+title: "Assessment: Economy"
+author: "Shozen Dan"
+date: "1/29/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+# Import library
+library(tidyverse)
+library(haven)
+```
+
+```{r message=FALSE}
+# Import Datasets
+work.2011 <- read_dta("../../data/Work_Retirement_and_Pension_2011.dta")
+work.2013 <- read_dta("../../data/Work_Retirement_and_Pension_2013.dta")
+work.2015 <- read_dta("../../data/Work_Retirement_and_Pension_2015.dta")
+work.2018 <- read_dta("../../data/Work_Retirement_and_Pension_2018.dta")
+
+income.2011 <- read_dta("../../data/Household_Income_2011.dta")
+income.2013 <- read_dta("../../data/Household_Income_2013.dta")
+income.2015 <- read_dta("../../data/Household_Income_2015.dta")
+income.2018 <- read_dta("../../data/Household_Income_2018.dta")
+```
+
+```{r}
+exp.2011 <- income.2011 %>% 
+  select(communityID, ge004, ge006, ge007, ge009_1, ge009_5, ge009_7) %>%
+  rename(
+    eat.together = ge004,
+    eat.home = ge006,
+    eat.out = ge007,
+    comm = ge009_1,
+    trans = ge009_5,
+    ent = ge009_7
+  )
+
+exp.2013 <- income.2013 %>% 
+  select(communityID, ge004, ge006, ge007, ge009_1, ge009_5, ge009_7) %>% 
+  rename(
+    eat.together = ge004,
+    eat.home = ge006,
+    eat.out = ge007,
+    comm = ge009_1,
+    trans = ge009_5,
+    ent = ge009_7
+  )
+
+exp.2015 <- income.2015 %>% 
+  select(communityID, ge004, ge006, ge007, ge009_1, ge009_5, ge009_7) %>% 
+  rename(
+    eat.together = ge004,
+    eat.home = ge006,
+    eat.out = ge007,
+    comm = ge009_1,
+    trans = ge009_5,
+    ent = ge009_7
+  )
+
+exp.2018 <- income.2018 %>% 
+  select(communityID, ge004, ge006_w4, ge007_w4, ge009_1, ge009_5, ge009_7) %>% 
+  rename(
+    eat.together = ge004,
+    eat.home = ge006_w4,
+    eat.out = ge007_w4,
+    comm = ge009_1,
+    trans = ge009_5,
+    ent = ge009_7
+  )
+
+exp.overall <- rbind(exp.2011,exp.2013,exp.2015,exp.2018)
+
+# Food
+na.food.1 <- exp.overall$eat.together==0 | is.na(exp.overall$eat.together) # denominator
+na.food.2 <- is.na(exp.overall$eat.home) & is.na(exp.overall$eat.out) # numerator
+na.food <- na.food.1 | na.food.2
+sum(na.food)
+sum(na.food)/nrow(exp.overall)
+
+# Communications
+na.comm <- exp.overall$comm<0 | is.na(exp.overall$comm)
+sum(na.comm)
+sum(na.comm)/nrow(exp.overall)
+
+# Transportation
+na.trans <- exp.overall$trans<0 | is.na(exp.overall$trans)
+sum(na.trans)
+sum(na.trans)/nrow(exp.overall)
+
+# Entertainment
+na.ent <- exp.overall$ent<0 | is.na(exp.overall$ent)
+sum(na.ent)
+sum(na.ent)/nrow(exp.overall)
+```
+
+## Agriculture
+```{r}
+econ.2011 <- work.2011 %>% 
+  select(communityID, fa001) %>% 
+  rename(agri.work = fa001)
+
+econ.2013 <- work.2013 %>% 
+  select(communityID, fa001) %>% 
+  rename(agri.work = fa001)
+
+econ.2015 <- work.2015 %>% 
+  select(communityID, fa001) %>% 
+  rename(agri.work = fa001)
+
+econ.2018 <- work.2018 %>% 
+  select(communityID, fc008) %>% 
+  rename(agri.work = fc008)
+
+econ.overall <- rbind(econ.2011, econ.2013, econ.2015, econ.2018)
+
+sum(is.na(econ.overall))
+sum(is.na(econ.overall))/nrow(econ.overall)
+```
+

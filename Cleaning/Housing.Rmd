@@ -1,0 +1,98 @@
+---
+title: 'Cleaning: Housing'
+author: "Shozen Dan"
+date: "1/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r message=FALSE}
+house.2011 <- read_dta("../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../data/Housing_Characteristics_2018.dta")
+```
+
+```{r}
+house.2011$i004
+house.2013$i017
+house.2011$i016
+house.2011$i022
+```
+
+
+```{r}
+house.clean.2011 <- house.2011 %>% 
+  select(communityID, householdID, i004, i016, i017, i022) %>%
+  mutate(
+    year = 2011,
+    house = as.numeric(i004),
+    elec = as.numeric(i016),
+    fuel = as.numeric(i022),
+    water = as.numeric(i017)
+  ) %>%
+  mutate(
+    house = case_when(
+      house == 1 | house == 2 ~ 1, 
+      TRUE ~ house
+    ), # Combine concrete & bricks/wood # Combine concrete & bricks/wood
+    householdID = str_c(householdID,"0")
+  ) %>% 
+  select(communityID, householdID, year, house, elec, fuel, water)
+  
+house.clean.2013 <- house.2013 %>% 
+  select(communityID, householdID, i004, i016, i017, i022) %>%
+  mutate(
+    year = 2013,
+    house = as.numeric(i004),
+    elec = as.numeric(i016),
+    fuel = as.numeric(i022),
+    water = as.numeric(i017)
+  ) %>%
+  mutate(
+    house = case_when(
+      house == 1 | house == 2 ~ 1, 
+      TRUE ~ house
+    ) # Combine concrete & bricks/wood
+  ) %>% 
+  select(communityID, householdID, year, house, elec, fuel, water)
+
+house.clean.2015 <- house.2015 %>% 
+  select(communityID, householdID, i004, i021, i017, i022) %>%
+  mutate(
+    year = 2015,
+    house = as.numeric(i004),
+    elec = NA, # If the house uses solar or electricity for heat it means they must have electricity
+    fuel = as.numeric(i022),
+    water = as.numeric(i017)
+  ) %>% 
+  select(communityID, householdID, year, house, elec, fuel, water)
+
+house.clean.2018 <- house.2018 %>% 
+  select(communityID, householdID, i004, i016, i017, i022_w4) %>% # 
+  mutate(
+    year = 2018,
+    house = as.numeric(i004),
+    elec = as.numeric(i016),
+    fuel = as.numeric(i022_w4),
+    water = as.numeric(i017)
+  ) %>% 
+  select(communityID, householdID, year, house, elec, fuel, water)
+
+house.clean <- rbind(house.clean.2011, house.clean.2013, house.clean.2015, house.clean.2018)
+
+house.clean <- house.clean %>%
+  arrange(communityID, householdID) %>%
+  group_by(communityID, householdID) %>%
+  fill(house, fuel, elec, water, .direction = "down")
+
+write_csv(house.clean, '../data/cleaned/housing_cleaned.csv')
+```

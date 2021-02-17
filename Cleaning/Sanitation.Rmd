@@ -1,0 +1,81 @@
+---
+title: 'Cleaning: Sanitation'
+author: "Shozen Dan"
+date: "1/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r message=FALSE}
+# Import Data
+house.2011 <- read_dta("../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../data/Housing_Characteristics_2018.dta")
+```
+
+```{r}
+# Cleaning
+# Data Imputation
+sani.2011 <- house.2011 %>% 
+  select(communityID, householdID, i012_3, i015, i018) %>%
+  mutate(
+    year = 2011,
+    householdID = str_c(householdID,"0")
+  ) %>%
+  rename(
+    num.toilets = i012_3,
+    flushable = i015,
+    inhouse.bath = i018
+  ) %>% 
+  select(communityID, householdID, year, num.toilets, flushable, inhouse.bath)
+
+sani.2013 <- house.2013 %>% 
+  select(communityID, householdID, i012_3, i015, i018) %>%
+  mutate(year = 2013) %>%
+  rename(
+    num.toilets = i012_3,
+    flushable = i015,
+    inhouse.bath = i018
+  ) %>% 
+  select(communityID, householdID, year, num.toilets, flushable, inhouse.bath)
+
+sani.2015 <- house.2015 %>% 
+  select(communityID, householdID, i012_3, i015, i018) %>%
+  mutate(year = 2015) %>%
+  rename(
+    num.toilets = i012_3,
+    flushable = i015,
+    inhouse.bath = i018
+  ) %>% 
+  select(communityID, householdID, year, num.toilets, flushable, inhouse.bath)
+
+sani.2018 <- house.2018 %>% 
+  select(communityID, householdID, i012_3, i015, i018) %>%
+  mutate(year = 2018) %>%
+  rename(
+    num.toilets = i012_3,
+    flushable = i015,
+    inhouse.bath = i018
+  ) %>% 
+  select(communityID, householdID, year, num.toilets, flushable, inhouse.bath)
+
+sani <- rbind(sani.2011, sani.2013, sani.2015, sani.2018)
+
+sani <- sani %>% 
+  arrange(communityID, householdID) %>%
+  group_by(communityID, householdID) %>%
+  fill(num.toilets, flushable, inhouse.bath, .direction="down") %>%
+  ungroup()
+
+write_csv(sani, '../data/cleaned/sanitation_cleaned.csv')
+```
+

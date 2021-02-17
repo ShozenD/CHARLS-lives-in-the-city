@@ -1,0 +1,94 @@
+---
+title: "Tables"
+author: "Shozen Dan"
+date: "2/12/2021"
+output: html_document
+---
+
+```{r message = FALSE}
+library(tidyverse)
+```
+
+```{r}
+df.ubs <- read_csv("../Scores/Individual/urbanicity.csv")
+head(df.ubs)
+```
+
+```{r}
+# Perform PCA
+items <- df.ubs %>% 
+  select(urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani)
+
+res.pca <- princomp(items)
+summary(res.pca)
+loadings <- res.pca$loadings[,1] # obtain PCA loading vector
+
+df.ubs$weighted <- as.matrix(items) %*% as.numeric(loadings) # calculate weighted scores
+df.ubs$urban_score_comm_wgt <- df.ubs$urban_score_comm * loadings[1]
+df.ubs$urban_score_house_wgt <- df.ubs$urban_score_house * loadings[2]
+df.ubs$urban_score_econ_wgt <- df.ubs$urban_score_econ * loadings[3]
+df.ubs$urban_score_sani_wgt <- df.ubs$urban_score_sani * loadings[4]
+```
+
+```{r}
+## Non-weighted
+# Summary stats
+psych::describe(df.ubs)
+
+# Summary statistics by year
+psych::describeBy(df.ubs, "year")
+
+## Weighted
+psych::describe(select(df.ubs,ends_with("wgt"),weighted))
+
+psych::describeBy(select(df.ubs,year,ends_with("wgt"),weighted),"year")
+```
+
+```{r}
+df.ubs.byyear <- df.ubs %>% 
+  group_by(year) %>% 
+  summarise(
+    urban_score_comm = mean(urban_score_comm),
+    urban_score_house = mean(urban_score_house),
+    urban_score_econ = mean(urban_score_econ),
+    urban_score_sani = mean(urban_score_sani)
+  ) %>% 
+  pivot_longer(
+    cols=starts_with("urban"),
+    names_to = "component",
+    values_to = "average"
+  )
+
+ggplot(df.ubs.byyear, aes(x=year, y=average, color=component)) +
+  geom_point(size=2) + 
+  geom_line() + 
+  theme_minimal() + 
+  theme(aspect.ratio = 1)
+
+df.ubs.wgt.byyear <- df.ubs %>% 
+  group_by(year) %>% 
+  summarise(
+    urban_score_comm_wgt = mean(urban_score_comm_wgt),
+    urban_score_house_wgt = mean(urban_score_house_wgt),
+    urban_score_econ_wgt = mean(urban_score_econ_wgt),
+    urban_score_sani_wgt = mean(urban_score_sani_wgt)
+  ) %>% 
+  pivot_longer(
+    cols=starts_with("urban"),
+    names_to = "component",
+    values_to = "average"
+  )
+
+ggplot(df.ubs.wgt.byyear, aes(x=year, y=average, color=component)) +
+  geom_point(size=2) + 
+  geom_line() + 
+  theme_minimal() + 
+  theme(aspect.ratio = 1)
+```
+
+```{r}
+df.ubs %>% 
+  rename(urban_score_wgt = weighted) %>% 
+  write_csv("../Scores/Individual/urbanicity_weighted.csv")
+```
+

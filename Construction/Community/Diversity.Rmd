@@ -159,6 +159,8 @@ income_variance <- income_variance %>%
     )
   ) %>% 
   select(communityID, PCE_var_score)
+
+is.na(income_variance) %>% sum()
 ```
 
 ## Summary

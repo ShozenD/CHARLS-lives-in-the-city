@@ -1,7 +1,7 @@
 ---
-title: "Construct Valididty"
+title: "Construct Validity: Health Care Scheme"
 author: "Shozen Dan"
-date: "11/15/2020"
+date: "11/28/2020"
 output: html_document
 ---
 
@@ -14,304 +14,230 @@ library(tidyverse)
 library(haven)
 ```
 
-```{r import data, message=FALSE}
-demo.2011 <- read_dta("../../data/Demographic_Background_2011.dta")
-demo.2015 <- read_dta("../../data/Demographic_Background_2015.dta")
-bio.2011 <- read_dta("../../data/Biomarker_2011.dta")
-bio.2015 <- read_dta("../../data/Biomarker_2015.dta")
-urban.score <- read_csv("../../Scores/Individual/urbanicity.csv")
-psu <- read_dta("../../data/PSU.dta")
+```{r message=FALSE}
+urb.scores <- read_csv('../../Scores/Individual/urbanicity_weighted.csv')
+health.2011 <- read_dta('../../data/Healthcare_and_Insurance_2011.dta')
+health.2013 <- read_dta('../../data/Healthcare_and_Insurance_2013.dta')
+health.2015 <- read_dta('../../data/Healthcare_and_Insurance_2015.dta')
+health.2018 <- read_dta('../../data/Healthcare_and_Insurance_2018.dta')
 ```
 
-## 1. Exploratory Analysis of Urbanicity Score
-### 1.1 Baseline Urbanicity Scores
-```{r}
-urb.baseline <- urban.score %>% filter(year == 2011)
+### 2011 Survey
+`ea001s1`: Urban Employee Medical Insurance
+`ea001s2`: Urban Resident Medical Insurance
+`ea001s3`: New Cooperative Medical Insurance
+`ea001s4`: Urban and Rural Residence Medial Insurance
 
-ggplot(urb.baseline, aes(x = urban_score)) +
-  geom_histogram(aes(y = ..density..), bins = 40, color = "grey30") + 
-  geom_density(alpha = .2, fill = "antiquewhite3") + 
-  scale_x_continuous(breaks = seq(0, 40, 5)) + 
-  labs(x = "Urban Score", y = "Density") + 
-  theme_light()
+### 2015 Survey
+`ea003_1_`: Where set up: Urban Employee Medical Insurance
+`ea003_2_`: Where set up: Urban Resident Medical Insurance
+`ea003_3_`: Where set up: New Cooperative Medical Insurance
+`ea003_4_`: Where set up: Urban and Rural Residence Medial Insurance
+
+### 2018 Survey
+`ea001_w4_s1`: Urban Employee Medical Insurance
+`ea001_w4_s2`: Urban and Rural Residence Medial Insurance
+`ea001_w4_s3`: Urban Resident Medical Insurance
+`ea001_w4_s4`: New Cooperative Medical Insurance
+
+```{r}
+health.2011 <- health.2011 %>% 
+  select(communityID, ea001s1, ea001s2, ea001s3, ea001s4) %>% 
+  mutate(
+    ea001s1 = ifelse(!is.na(ea001s1), 1, 0),
+    ea001s2 = ifelse(!is.na(ea001s2), 1, 0),
+    ea001s3 = ifelse(!is.na(ea001s3), 1, 0),
+    ea001s4 = ifelse(!is.na(ea001s4), 1, 0)
+  )
+
+health.2013 <- health.2013 %>% 
+  select(communityID, ea001s1, ea001s2, ea001s3, ea001s4) %>% 
+  mutate(
+    ea001s1 = ifelse(!is.na(ea001s1), 1, 0),
+    ea001s2 = ifelse(!is.na(ea001s2), 1, 0),
+    ea001s3 = ifelse(!is.na(ea001s3), 1, 0),
+    ea001s4 = ifelse(!is.na(ea001s4), 1, 0)
+  )
+
+health.2015 <- health.2015 %>% 
+  select(communityID, ea003_1_, ea003_2_, ea003_3_, ea003_4_) %>% 
+  mutate(
+    ea003_1_ = ifelse(!is.na(ea003_1_), 1, 0),
+    ea003_2_ = ifelse(!is.na(ea003_2_), 1, 0),
+    ea003_3_ = ifelse(!is.na(ea003_3_), 1, 0),
+    ea003_4_ = ifelse(!is.na(ea003_4_), 1, 0)
+  )
+
+health.2018 <- health.2018 %>% 
+  select(communityID, ea001_w4_s1, ea001_w4_s2, ea001_w4_s3, ea001_w4_s4) %>% 
+  mutate(
+    ea001_w4_s1 = ifelse(ea001_w4_s1 == 1, 1, 0),
+    ea001_w4_s2 = ifelse(ea001_w4_s2 == 2, 1, 0),
+    ea001_w4_s3 = ifelse(ea001_w4_s3 == 3, 1, 0),
+    ea001_w4_s4 = ifelse(ea001_w4_s4 == 4, 1, 0)
+  )
 ```
 
-### Divide Scores in to Quintiles
 ```{r}
-urb.quintile <- quantile(urb.baseline$urban_score, seq(0, 1, .2))
-
-urb.baseline <- urb.baseline %>% 
+urb.2011 <- urb.scores %>% filter(year == 2011)
+urb.quint.2011 <- quantile(urb.2011$urban_score, prob=seq(0,1,0.2))
+urb.2011 <- urb.2011 %>% 
   mutate(
     quintile = case_when(
-      urban_score < urb.quintile[2] ~ 1,
-      urban_score < urb.quintile[3] ~ 2,
-      urban_score < urb.quintile[4] ~ 3,
-      urban_score < urb.quintile[5] ~ 4,
-      urban_score < urb.quintile[6] ~ 5
+      urban_score < urb.quint.2011[2] ~ "Q1",
+      urban_score < urb.quint.2011[3] ~ "Q2",
+      urban_score < urb.quint.2011[4] ~ "Q3",
+      urban_score < urb.quint.2011[5] ~ "Q4",
+      urban_score <= urb.quint.2011[6] ~ "Q5"
     )
   )
-```
 
-### 1.2 2015 Urbanicity Scores
-```{r}
-urb.2015 <- urban.score %>% filter(year == 2015)
-
-ggplot(urb.2015, aes(x = urban_score)) +
-  geom_histogram(aes(y = ..density..), bins = 40, color = "grey30") + 
-  geom_density(alpha = .2, fill = "antiquewhite3") + 
-  scale_x_continuous(breaks = seq(0, 40, 5)) + 
-  labs(x = "Urban Score", y = "Density") + 
-  theme_light()
-```
-
-### Change in Urbanicity
-```{r}
-urb.change <- urban.score %>% 
-  select(communityID, year, urban_score) %>%
-  filter(year == 2011 | year == 2015) %>% 
-  pivot_wider(
-    id_cols = communityID, 
-    names_from = year, 
-    names_prefix = "urban_score_", 
-    values_from = urban_score
-  ) %>% 
-  mutate(urban_score_change = urban_score_2015 - urban_score_2011) %>% 
-  drop_na()
-
-ggplot(urb.change, aes(x = urban_score_change)) + 
-  geom_histogram(aes(y = ..density..), bins = 30, color = "grey30") +
-  geom_density(alpha = .2, fill = "antiquewhite3") + 
-  labs(x = "Change in urbanicity score", y = "Density") + 
-  theme_light()
-```
-
-```{r}
-urb.change.quantile <- quantile(urb.change$urban_score_change, probs = seq(0, 1, .25))
-
-urb.quintile <- quantile(urb.baseline$urban_score, seq(0, 1, .2))
-urb.change.quintile <- quantile(urb.change$urban_score_change, probs = seq(0, 1, .2))
-
-urb.change <- urb.change %>%
+urb.2013 <- urb.scores %>% filter(year == 2013)
+urb.quint.2013 <- quantile(urb.2013$urban_score, prob=seq(0,1,0.2))
+urb.2013 <- urb.2013 %>% 
   mutate(
-    baseline_quintile = case_when(
-      urban_score_2011 < urb.quintile[2] ~ 1,
-      urban_score_2011 < urb.quintile[3] ~ 2,
-      urban_score_2011 < urb.quintile[4] ~ 3,
-      urban_score_2011 < urb.quintile[5] ~ 4,
-      urban_score_2011 < urb.quintile[6] ~ 5
-    ),
-    quantile = case_when(
-      urban_score_change < urb.change.quantile[2] ~ 1,
-      urban_score_change < urb.change.quantile[3] ~ 2,
-      urban_score_change < urb.change.quantile[4] ~ 3,
-      urban_score_change < urb.change.quantile[5] ~ 4,
-    ),
     quintile = case_when(
-      urban_score_change < urb.change.quintile[2] ~ 1,
-      urban_score_change < urb.change.quintile[3] ~ 2,
-      urban_score_change < urb.change.quintile[4] ~ 3,
-      urban_score_change < urb.change.quintile[5] ~ 4,
-      urban_score_change < urb.change.quintile[6] ~ 5
-    )
-  ) %>% 
-  drop_na()
-
-urb.change$baseline_quintile <- factor(urb.change$baseline_quintile)
-
-ggplot(urb.change, aes(x = urban_score_2011, y = urban_score_change)) + 
-  geom_point() + 
-  geom_smooth() +
-  labs(x = "Baseline Urbanicity", y = "Change in Urbanicity") +
-  theme_light()
-```
-```{r}
-cor.test(urb.change$urban_score_2011, urb.change$urban_score_change)
-```
-
-```{r}
-urb.change <- urb.change %>% 
-  mutate(
-    category = case_when(
-      urban_score_2011 < 10 & urban_score_change <= 5 ~ "B10+5",
-      urban_score_2011 < 10 & urban_score_change <= 10 ~ "B10+10",
-      
-      urban_score_2011 < 20 & urban_score_change <= 5 ~ "B20+5",
-      urban_score_2011 < 20 & urban_score_change <= 10 ~ "B20+10",
-      
-      urban_score_2011 < 30 & urban_score_change <= 5 ~ "B30+5",
-      urban_score_2011 < 30 & urban_score_change <= 10 ~ "B30+10",
+      urban_score < urb.quint.2013[2] ~ "Q1",
+      urban_score < urb.quint.2013[3] ~ "Q2",
+      urban_score < urb.quint.2013[4] ~ "Q3",
+      urban_score < urb.quint.2013[5] ~ "Q4",
+      urban_score <= urb.quint.2013[6] ~ "Q5"
     )
   )
-```
 
-
-```{r}
-# urb.change <- rename(urb.change, change_quintile = quintile)
-urb.change$quintile <- factor(urb.change$quintile)
-urb.change$quantile <- factor(urb.change$quantile)
-urb.change$baseline <- factor(urb.change$baseline)
-
-urb.change
-```
-
-
-### Compute BMI
-* `qi002`: height in centimeters
-* `ql002`: weight in kg
-```{r}
-bmi.2011 <- bio.2011 %>% 
-  mutate( # Adjusting ID
-    householdID = str_c(householdID, "0"),
-    ID = str_c(householdID, substring(ID, 10, 11))
-  ) %>%
-  select(ID, householdID, communityID, qi002, ql002) %>%
-  rename(height = qi002, weight = ql002) %>%
-  drop_na() %>% 
-  filter(height != 999, height != 993) %>% # remove invalid entries
-  filter(weight != 999, weight != 993) %>% # remove invalid entries
+urb.2015 <- urb.scores %>% filter(year == 2015)
+urb.quint.2015 <- quantile(urb.2015$urban_score, prob=seq(0,1,0.2))
+urb.2015 <- urb.2015 %>% 
   mutate(
-    bmi = weight/(height/100)^2, # compute bmi
-    overweight = ifelse(bmi >= 25, 1, 0), # overweight: bmi >= 25
+    quintile = case_when(
+      urban_score < urb.quint.2015[2] ~ "Q1",
+      urban_score < urb.quint.2015[3] ~ "Q2",
+      urban_score < urb.quint.2015[4] ~ "Q3",
+      urban_score < urb.quint.2015[5] ~ "Q4",
+      urban_score <= urb.quint.2015[6] ~ "Q5"
+    )
   )
 
-bmi.2015 <- bio.2015 %>% 
-  select(ID, householdID, communityID, qi002, ql002) %>%
-  rename(height = qi002, weight = ql002) %>%
-  drop_na() %>% 
-  filter(height != 999, height != 993) %>% # remove invalid entries
-  filter(weight != 999, weight != 993) %>% # remove invalid entries
+urb.2018 <- urb.scores %>% filter(year == 2018)
+urb.quint.2018 <- quantile(urb.2018$urban_score, prob=seq(0,1,0.2))
+urb.2018 <- urb.2018 %>% 
   mutate(
-    bmi = weight/(height/100)^2, # compute bmi
-    overweight = ifelse(bmi >= 25, 1, 0), # overweight: bmi >= 25
+    quintile = case_when(
+      urban_score < urb.quint.2018[2] ~ "Q1",
+      urban_score < urb.quint.2018[3] ~ "Q2",
+      urban_score < urb.quint.2018[4] ~ "Q3",
+      urban_score < urb.quint.2018[5] ~ "Q4",
+      urban_score <= urb.quint.2018[6] ~ "Q5"
+    )
+  )
+
+health.2011 <- health.2011 %>% 
+  left_join(urb.2011, by="communityID") %>% 
+  mutate(
+    urb_ins = ifelse(ea001s1 == 1 | ea001s2 == 1,1,0), # UBEMI & UBRMI
+    rur_ins = ifelse(ea001s3 == 1,1,0) # NCMI
+  )
+
+health.2013 <- health.2013 %>% 
+  left_join(urb.2013, by="communityID") %>% 
+  mutate(
+    urb_ins = ifelse(ea001s1 == 1 | ea001s2 == 1,1,0), # UBEMI & UBRMI
+    rur_ins = ifelse(ea001s3 == 1,1,0) # NCMI
+  )
+
+health.2015 <- health.2015 %>% 
+  left_join(urb.2015, by="communityID") %>% 
+  mutate(
+    urb_ins = ifelse(ea003_1_ == 1 | ea003_2_ == 1,1,0), # UBEMI & UBRMI
+    rur_ins = ifelse(ea003_3_ == 1,1,0) # NCMI
+  )
+
+health.2018 <- health.2018 %>% 
+  left_join(urb.2018, by="communityID") %>% 
+  mutate(
+    urb_ins = ifelse(ea001_w4_s1 == 1 | ea001_w4_s3 == 1,1,0), # UBEMI & UBRMI
+    rur_ins = ifelse(ea001_w4_s4 == 1,1,0) # NCMI
   )
 ```
 
+## Urban Medical Insurance
 ```{r}
-sex <- demo.2015 %>% 
-  select(ID, ba000_w2_3) %>% 
-  rename(sex = ba000_w2_3)
-  
-age <- demo.2011 %>% 
-  mutate( # adujst ID 
-    householdID = str_c(householdID, "0"),
-    ID = str_c(householdID, substring(ID, 10, 11)),
-    age = 2011 - ba002_1,
-    ageSQ = age^2
-  ) %>%
-  select(ID, householdID, communityID, age,ageSQ) %>% 
-  drop_na()
+logit.urb_ins.2011 <- glm(urb_ins ~ quintile, health.2011, family = "binomial")
+logit.urb_ins.2013 <- glm(urb_ins ~ quintile, health.2013, family = "binomial")
+logit.urb_ins.2015 <- glm(urb_ins ~ quintile, health.2015, family = "binomial")
+logit.urb_ins.2018 <- glm(urb_ins ~ quintile, health.2018, family = "binomial")
 
-# Join data frames
-cohort.2011 <- left_join(age, sex, by = "ID") %>% 
-  left_join(bmi.2011, by = c("ID", "householdID", "communityID")) %>% 
-  filter(overweight == 0) # Females not overweight at baseline
-```
-
-### Join Dataframes
-```{r}
-bmi.2015.subset <- bmi.2015[bmi.2015$ID %in% cohort.2011$ID,]
-cohort <- cohort.2011[cohort.2011$ID %in% bmi.2015$ID,]
-
-cohort <- cohort %>%
-  select(-overweight) %>%
-  left_join(
-    select(bmi.2015.subset, ID, overweight), 
-    by = "ID"
-  ) %>% 
-  left_join(
-    select(urb.change, communityID, baseline, category),
-    by = "communityID"
-  )
-```
-
-### Fixed Effects Regression
-```{r}
-# cohort$baseline_quintile <- factor(cohort$baseline_quintile, labels = seq(5, 1))
-# cohort$quintile <- factor(cohort$quintile, labels = seq(5, 1))
-# cohort$quantile <- factor(cohort$quantile, labels = seq(4, 1))
-cohort <- cohort %>% mutate(sex = ifelse(sex == 1, "Male", "Female"))
-cohort$category <- factor(cohort$category, levels = c("B10+5", "B10+10", "B20+5", "B20+10", "B30+5", "B30+10"))
+summary(logit.urb_ins.2011)
+summary(logit.urb_ins.2013)
+summary(logit.urb_ins.2015)
+summary(logit.urb_ins.2018)
 ```
 
 ```{r}
-glm.mod <- glm(overweight ~ age + sex + category, cohort, family = "binomial")
-summary(glm.mod)
-```
+health.2011$year <- 2011
+health.2013$year <- 2013
+health.2015$year <- 2015
+health.2018$year <- 2018
 
-### Create Forest Plot
-```{r}
-or <- exp(coef(glm.mod)) # extract and exponentiate coefs
-se <- sqrt(diag(vcov(glm.mod))) # extract Var and covert to SE
-lower <- exp(coef(glm.mod) - qnorm(0.975) * se) # 95% C.I. lower bound
-upper <- exp(coef(glm.mod) + qnorm(0.975) * se) # 95% C.I. higher bound
-tmp <- data.frame(cbind(or, lower, upper)) # create data frame
-tmp
-```
-```{r}
-clean.names <- c(
-  "(Intercept)",
-  "Age",
-  "Male",
-  "Baseline <10 & Increase <=10",
-  "Baseline <20 & Increase <=5",
-  "Baseline <20 & Increase <=10",
-  "Baseline <30 & Increase <=5",
-  "Baseline <30 & Increase <=10"
+df.healthins <- rbind(
+  select(health.2011, communityID, year, urban_score, quintile, urb_ins, rur_ins),
+  select(health.2013, communityID, year, urban_score, quintile, urb_ins, rur_ins),
+  select(health.2015, communityID, year, urban_score, quintile, urb_ins, rur_ins),
+  select(health.2018, communityID, year, urban_score, quintile, urb_ins, rur_ins)
 )
 
-row.names(tmp) <- clean.names
-odds <- tmp[-1, ]
+df.healthins <- df.healthins %>% 
+  group_by(quintile, year) %>% 
+  summarise(
+    urban_score = mean(urban_score,na.rm=T),
+    urb_ins = mean(urb_ins, na.rm=T),
+    rur_ins = mean(rur_ins, na.rm=T)
+  ) %>% 
+  drop_na() %>% 
+  pivot_longer(cols = ends_with("ins"), names_to = "type", values_to = "rate")
 
-# Creating reference points
-ref.sex <- data.frame(row.names = "Female", or = 1, lower = 1, upper = 1)
-ref.category <- data.frame(row.names = "Baseline <10 & Increase <=5", or = 1, lower = 1, upper = 1)
-
-odds
-```
-```{r}
-odds <- rbind(
-  odds[1,],
-  ref.sex, odds[2,],
-  ref.category, odds[4,],
-  odds[5:7,]
-)
-```
-
-```{r}
-odds$vars <- row.names(odds) # create a new column called vars
-
-odds <- odds %>% # create a new column called category and sort the variables into the category you want. This is used later to add the colors.
-  mutate(
-    category = case_when(
-      vars == "Age" ~ "Age",
-      vars == "Female" ~ "Sex",
-      vars == "Male" ~ "Sex",
-      TRUE ~ "Urbanicity"
-    )
-  )
-
-odds$category <- factor(odds$category, levels = c("Urbanicity", "Sex", "Age"))
-color.schema <- c("#0D0D0D", "#8C0303", "#3D7345", "#BB7A32", "#DDB247", "#4B7210", "#519188", "#14312A", "#653040")
-```
-
-```{r}
-ggplot(odds, aes(y = or, x = vars, color=category)) + 
-  geom_hline(yintercept = 1, linetype = 2) + 
-  geom_point(size=6) + 
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = .2) + 
-  scale_y_log10() + 
-  coord_flip() + 
-  annotate("text", y = rev(odds$or), x = 1:nrow(odds), label = round(rev(odds$or), 2), size=2, color="white") + 
-  scale_colour_manual(values = color.schema) + 
+ggplot(df.healthins, aes(x=urban_score, y=rate, color=type, shape=factor(year))) + 
+  geom_point(size=2.3, alpha=0.8) + 
+  geom_line(alpha=0.6) + 
+  scale_x_continuous(breaks = seq(0,40,5), limits=c(5,38)) + 
+  scale_y_continuous(breaks = seq(0,1,0.2), limits=c(0,1), labels = scales::percent_format(accuracy = 5L)) + 
+  scale_color_manual(labels = c("Rural", "Urban"), values = c("#003f5c", "#ffa600")) + 
   labs(
-    title = "Mental Health Service Utilization",
-    subtitle = "Multiple Logistic Regression",
-    x = element_blank(),
-    y = "Odds Ratio",
-    caption = "National Health Interview Survey (2006 ~ 2018)"
-  ) +
-  theme_bw() +
-  theme(axis.text.y = element_text(size = 11))
+    x = "Urbanicity Score", 
+    y="Enrollement Rate",
+    shape="Year",
+    color="Type"
+  ) + 
+  theme_minimal() + 
+  theme(legend.position = "bottom")
 ```
 
+
+## New Cooperative Medical Insurance
+```{r}
+ncmi.2011 <- glm(ea001s3 ~ quintile, health.2011, family = "binomial")
+ncmi.2013 <- glm(ea001s3 ~ quintile, health.2013, family = "binomial")
+ncmi.2015 <- glm(ea003_3_ ~ quintile, health.2015, family = "binomial")
+ncmi.2018 <- glm(ea001_w4_s4 ~ quintile, health.2018, family = "binomial")
+
+summary(ncmi.2011)
+summary(ncmi.2013)
+summary(ncmi.2015)
+summary(ncmi.2018)
+
+exp(ncmi.2018$coefficients)
+```
+
+## Urban and Rural Residence Medial Insurance
+```{r}
+urrmi.2011 <- glm(ea001s4 ~ quintile, health.2011, family = "binomial")
+urrmi.2013 <- glm(ea001s4 ~ quintile, health.2013, family = "binomial")
+urrmi.2015 <- glm(ea003_1_ ~ quintile, health.2015, family = "binomial")
+urrmi.2018 <- glm(ea001_w4_s2 ~ quintile, health.2018, family = "binomial")
+
+summary(urrmi.2011)
+summary(urrmi.2013)
+summary(urrmi.2015)
+summary(urrmi.2018)
+```
 

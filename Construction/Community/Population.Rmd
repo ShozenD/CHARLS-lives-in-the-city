@@ -66,6 +66,9 @@ missing.id <- pop.score %>%
   filter(is.na(urban_score_pop)) %>% 
   pull(communityID)
 
+length(missing.id) # Total number of missing estimates
+length(missing.id)/nrow(pop.score) # Proportion of missing among total
+
 # Computing the county average
 county.avg <- pop.score %>% 
   group_by(city_eng) %>%

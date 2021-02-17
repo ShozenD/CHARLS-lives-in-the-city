@@ -14,7 +14,7 @@ library(haven)
 chns <- read_sas('~/Downloads/Master_UrbanIndex_201804/urban_11.sas7bdat')
 psu <- read_dta("../../data/PSU.dta") %>% 
   dplyr::select(communityID, province_eng, city_eng, urban_nbs)
-charls <- read_csv('../../Scores/Individual/urbanicity.csv') %>% 
+charls <- read_csv('../../Scores/Individual/urbanicity_weighted.csv') %>% 
   left_join(psu, by="communityID")
 ```
 
@@ -57,15 +57,23 @@ urban_avg$wave <- factor(urban_avg$wave)
 ```
 
 ```{r}
-ggplot(urban_avg, aes(x=chns_score, y=charls_score)) + 
+ggplot(urban_avg, aes(x=charls_score, y=chns_score)) + 
+  geom_smooth(method = lm, se=T, color="gray45", size=0.7) + 
   geom_point(aes(color=wave)) + 
-  geom_smooth(method = lm, se=F) + 
   ggrepel::geom_text_repel(aes(label=province_eng), size=3) +
-  theme_light() + 
+  ylim(55,90) + 
+  xlim(5,40) +
+  theme_minimal() + 
+  scale_color_manual(values=c("#003f5c", "#ffa600")) + 
   labs(
-    x = "CHNS Urbanicity Score",
-    y = "CHARLS Urbanicity Score",
-    subtitle = "Unadjusted"
+    x = "CHARLS",
+    y = "CHNS",
+    color = "Year",
+    title = "Unadjusted"
+  ) + 
+  theme(
+    legend.position = c(0.15,0.82),
+    aspect.ratio = 1
   )
 ```
 Compared to CHNS, CHARLS overestimates the urbanicity of Chonqing and underestimates the urbanicity of Heilongjiang and Jiangsu. This is due to the fact that the two surveys have different sampling schemes. In order to compare them fairly we need to adjust for this.  
@@ -122,16 +130,24 @@ urban_avg
 ```
 
 ```{r}
-ggplot(urban_avg, aes(x=chns_score, y=bootstrap_scores)) + 
+ggplot(urban_avg, aes(y=chns_score, x=bootstrap_scores)) + 
+  geom_smooth(method = lm, se=T, color="gray45", size=0.7) + 
   geom_point(aes(color=wave)) + 
-  geom_smooth(method = lm, se=F) + 
   ggrepel::geom_text_repel(aes(label=province_eng), size=3) +
-  theme_light() + 
+  ylim(55,90) + 
+  xlim(5,40) +
+  theme_minimal() + 
+  scale_color_manual(values=c("#003f5c", "#ffa600")) + 
   labs(
-    subtitle = "Adjusted",
-    x = "CHNS Urbanicity Score",
-    y = "CHARLS Urbanicity Score"
-  ) 
+    x = "CHARLS",
+    y = "CHNS",
+    color = "Year",
+    title = "Adjusted"
+  ) + 
+  theme(
+    legend.position = c(0.15,0.82),
+    aspect.ratio = 1
+  )
 ```
 ```{r}
 cor.test(urban_avg$chns_score, urban_avg$bootstrap_scores)

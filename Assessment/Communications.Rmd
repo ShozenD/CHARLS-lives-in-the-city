@@ -1,0 +1,51 @@
+---
+title: 'Assessment: Communications'
+author: "Shozen Dan"
+date: "1/29/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+# Import library
+library(tidyverse)
+library(haven)
+```
+
+```{r, message=FALSE}
+# Import dataset
+house.2011 <- read_dta("../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../data/Housing_Characteristics_2018.dta")
+```
+
+```{r}
+comm.2011 <- house.2011 %>% 
+  select(communityID, i023, i024) %>% 
+  rename(telephone = i023, internet = i024)
+
+comm.2013 <- house.2013 %>% 
+  select(communityID, i023, i024) %>% 
+  rename(telephone = i023, internet = i024)
+
+comm.2015 <- house.2015 %>% 
+  select(communityID, i023, i024) %>% 
+  rename(telephone = i023, internet = i024)
+
+comm.2018 <- house.2018 %>% 
+  select(communityID, i023, i024) %>% 
+  rename(telephone = i023, internet = i024)
+
+comm.overall <- rbind(comm.2011,comm.2013,comm.2015,comm.2018)
+
+sum(is.na(comm.overall$telephone))
+sum(is.na(comm.overall$telephone))/nrow(comm.overall)
+
+sum(is.na(comm.overall$internet))
+sum(is.na(comm.overall$internet))/nrow(comm.overall)
+```
+

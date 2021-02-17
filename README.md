@@ -45,7 +45,10 @@ The figure above displays the relationship between our scale (aggregated individ
 Using receiver operator characteristic curve determination of maximum specificity and sensitivity, we dichotomized communities into urban and rural categories using a cutoff point of 14.7. The kappa statistic for agreement beyond chance against the "Gold Standard" was 0.66 which can be interpreted as very good, indicating that our scale has good criterion validity. 
 
 ### Construct Validity
-The construct validity a scale is the extent to which it accomplishes the purpose claimed for it. We demonstrate the validity of our scale, as well as provide a example of how it may be utilized, by examining the effect of baseline urbanicity and urbanicity change on the likelihood of becoming over weight (BMI >= 25).
+The construct validity a scale is the extent to which it accomplishes the purpose claimed for it.
+
+### Use Cases
+ We provide a example of how it may be utilized, by examining the effect of baseline urbanicity and urbanicity change on the likelihood of becoming over weight (BMI >= 25).
 
 <p align="center">
   <img src="figures/const_valid.png" alt="Comm. & Indiv." width="450"></img>

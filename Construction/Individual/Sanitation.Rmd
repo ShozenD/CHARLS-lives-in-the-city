@@ -9,155 +9,61 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r message=FALSE}
 library(tidyverse)
-library(haven)
 ```
 
-```{r}
-house.2011 <- read_dta("../../data/Housing_Characteristics_2011.dta")
-house.2013 <- read_dta("../../data/Housing_Characteristics_2013.dta")
-house.2015 <- read_dta("../../data/Housing_Characteristics_2015.dta")
-house.2018 <- read_dta("../../data/Housing_Characteristics_2018.dta")
+```{r message=FALSE}
+sani <- read_csv("../../data/cleaned/sanitation_cleaned.csv")
 ```
 
 ```{r, message=FALSE}
-sani.2011 <- house.2011 %>% 
-  select(communityID, i012_3, i014s2, i015) %>%
+urban.score.sani <- sani %>% 
   mutate(
-    i014s2 = replace_na(i014s2, 1),
-    indoor_flushable_toilet = ifelse((i012_3 == 1 & i015 == 1) | i014s2 == 2, 1, 0),
-    indoor_unflushable_toilet = ifelse(i012_3 == 1 & i015 == 2, 1, 0)
+    indoor_flushable_toilet = ifelse((num.toilets >= 1 & flushable == 1), 1, 0),
+    indoor_unflushable_toilet = ifelse((num.toilets >= 1 & flushable == 2), 1, 0),
+    inhouse_bath = ifelse(inhouse.bath == 1 | inhouse.bath == 2, 1, 0)
   ) %>% 
-  group_by(communityID) %>%
+  group_by(year, communityID) %>%
   summarise(
     prop_indoor_flushable_toilet = mean(indoor_flushable_toilet, na.rm = T),
-    prop_indoor_unflushable_toilet = mean(indoor_unflushable_toilet, na.rm = T)
+    prop_indoor_unflushable_toilet = mean(indoor_unflushable_toilet, na.rm = T),
+    prop_inhouse_bath = mean(inhouse_bath, na.rm = T)
   ) %>% 
   mutate(
-    urban_score_sani = 10*(2*prop_indoor_flushable_toilet + prop_indoor_unflushable_toilet)/3
+    toilet_score = (2*prop_indoor_flushable_toilet + prop_indoor_unflushable_toilet)/2,
+    urban_score_sani = 10*(toilet_score + prop_inhouse_bath)/2,
+    toilet_score = 10*toilet_score
   ) %>% 
-  select(communityID, urban_score_sani)
-
-sani.2013 <- house.2013 %>% 
-  select(communityID, i012_3, i014s2, i015) %>%
-  mutate(
-    i014s2 = replace_na(i014s2, 1),
-    indoor_flushable_toilet = ifelse((i012_3 == 1 & i015 == 1) | i014s2 == 2, 1, 0),
-    indoor_unflushable_toilet = ifelse(i012_3 == 1 & i015 == 2, 1, 0)
-  ) %>% 
-  group_by(communityID) %>%
-  summarise(
-    prop_indoor_flushable_toilet = mean(indoor_flushable_toilet, na.rm = T),
-    prop_indoor_unflushable_toilet = mean(indoor_unflushable_toilet, na.rm = T)
-  ) %>% 
-  mutate(
-    urban_score_sani = 10*(2*prop_indoor_flushable_toilet + prop_indoor_unflushable_toilet)/3
-  ) %>% 
-  select(communityID, urban_score_sani)
-
-sani.2015 <- house.2015 %>% 
-  select(communityID, i012_3, i014s2, i015) %>%
-  mutate(
-    i014s2 = replace_na(i014s2, 1),
-    indoor_flushable_toilet = ifelse((i012_3 == 1 & i015 == 1) | i014s2 == 2, 1, 0),
-    indoor_unflushable_toilet = ifelse(i012_3 == 1 & i015 == 2, 1, 0)
-  ) %>% 
-  group_by(communityID) %>%
-  summarise(
-    prop_indoor_flushable_toilet = mean(indoor_flushable_toilet, na.rm = T),
-    prop_indoor_unflushable_toilet = mean(indoor_unflushable_toilet, na.rm = T)
-  ) %>% 
-  mutate(
-    urban_score_sani = 10*(2*prop_indoor_flushable_toilet + prop_indoor_unflushable_toilet)/3
-  ) %>% 
-  select(communityID, urban_score_sani)
-
-sani.2018 <- house.2018 %>% 
-  select(communityID, i012_3, i014, i015) %>%
-  mutate(
-    indoor_flushable_toilet = ifelse((i012_3 == 1 & i015 == 1) | i014 == 2 , 1, 0),
-    indoor_unflushable_toilet = ifelse(i012_3 == 1 & i015 == 2, 1, 0)
-  ) %>% 
-  group_by(communityID) %>%
-  summarise(
-    prop_indoor_flushable_toilet = mean(indoor_flushable_toilet, na.rm = T),
-    prop_indoor_unflushable_toilet = mean(indoor_unflushable_toilet, na.rm = T)
-  ) %>% 
-  mutate(
-    urban_score_sani = 10*(2*prop_indoor_flushable_toilet + prop_indoor_unflushable_toilet)/3
-  ) %>% 
-  select(communityID, urban_score_sani)
+  select(communityID, urban_score_sani, toilet_score)
 ```
 
 ## Imputation
 ```{r}
-summary(sani.2011$urban_score_sani)
-summary(sani.2013$urban_score_sani)
-summary(sani.2015$urban_score_sani)
-summary(sani.2018$urban_score_sani)
+mask.nan <- is.nan(urban.score.sani$urban_score_sani)
+urban.score.sani[mask.nan,]$urban_score_sani <- NA
 
-# Impute 2015
-sani.na.communityID <- sani.2015 %>% filter(is.na(urban_score_sani)) %>% pull(communityID)
-sani.score.proxy <- sani.2015 %>% left_join(psu, by="communityID") %>% group_by(city_eng) %>% summarise(score = mean(urban_score_sani, na.rm = T))
-for(i in 1:length(sani.na.communityID)){
-  city <- sani.2015 %>% 
-    left_join(psu, by="communityID") %>% 
-    filter(communityID == sani.na.communityID[i]) %>% 
-    pull(city_eng)
-  
-  score <- sani.score.proxy %>% 
-    filter(city_eng == city) %>% 
-    pull(score)
-  
-  sani.2015[sani.2015$communityID == sani.na.communityID[i], "urban_score_sani"] <- score
-}
-summary(sani.2015$urban_score_sani)
-
-# Impute 2018
-sani.na.communityID <- sani.2018 %>% filter(is.na(urban_score_sani)) %>% pull(communityID)
-sani.score.proxy <- sani.2018 %>% left_join(psu, by="communityID") %>% group_by(city_eng) %>% summarise(score = mean(urban_score_sani, na.rm = T))
-for(i in 1:length(sani.na.communityID)){
-  city <- sani.2018 %>% 
-    left_join(psu, by="communityID") %>% 
-    filter(communityID == sani.na.communityID[i]) %>% 
-    pull(city_eng)
-  
-  score <- sani.score.proxy %>% 
-    filter(city_eng == city) %>% 
-    pull(score)
-  
-  sani.2018[sani.2018$communityID == sani.na.communityID[i], "urban_score_sani"] <- score
-}
-summary(sani.2018$urban_score_sani)
-
-sani.2018[is.na(sani.2018$urban_score_sani), "urban_score_sani"] <- sani.2015 %>% 
-  left_join(psu, by="communityID") %>% 
-  filter(city_eng == "Jiamusi") %>% 
-  pull(urban_score_sani)
-
-summary(sani.2018$urban_score_sani)
+urban.score.sani <- urban.score.sani %>% 
+  group_by(communityID) %>%
+  fill(urban_score_sani, .direction = "down")
 ```
 
 
 ```{r}
-urban.score.sani <- rbind(
-  mutate(sani.2011, year="2011"),
-  mutate(sani.2013, year="2013"),
-  mutate(sani.2015, year="2015"),
-  mutate(sani.2018, year="2018")
-)
-
-ggplot(urban.score.sani, aes(x = urban_score_sani)) + 
-  geom_density(aes(fill = year), alpha=0.7) + 
+ggplot(urban.score.sani, aes(x = urban_score_sani, color=factor(year))) + 
+  geom_density(size=0.7) + 
   scale_x_continuous(breaks = seq(0,10,1), limits = c(0,10)) +
   labs(
-    subtitle = "Sanitation",
     x = "Score",
-    y = "Density",
-    fill="Year"
+    y = "Density"
   ) + 
-  theme_light()
+  ylim(c(0,0.35)) +
+  theme_minimal() + 
+  scale_color_manual(values = c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
+  theme(
+    legend.title = element_blank(),
+    aspect.ratio = 1
+  )
 ```
 ```{r}
 write_csv(urban.score.sani, "../../Scores/Individual/sanitation.csv")

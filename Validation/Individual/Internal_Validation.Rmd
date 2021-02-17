@@ -18,8 +18,6 @@ comm <- read_csv("../../Scores/Individual/communication.csv")
 house <- read_csv("../../Scores/Individual/housing.csv")
 econ <- read_csv("../../Scores/Individual/economic.csv")
 sani <- read_csv("../../Scores/Individual/sanitation.csv")
-# insr <- read_csv("../../Scores/Individual/insurance.csv")
-# div <- read_csv("../../Scores/Individual/diversity.csv")
 psu <- read_dta("../../data/PSU.dta") %>% 
   dplyr::select(communityID, province_eng, city_eng, urban_nbs)
 
@@ -27,11 +25,11 @@ psu <- read_dta("../../data/PSU.dta") %>%
 urban.score <- comm %>% 
   left_join(house, by=c("communityID","year")) %>% 
   left_join(econ, by=c("communityID","year")) %>% 
-  left_join(sani, by=c("communityID","year")) %>% 
-  # left_join(insr, by=c("communityID","year")) %>% 
-  # left_join(div, by=c("communityID","year")) %>% 
+  left_join(sani, by=c("communityID","year")) %>%
   left_join(psu, by="communityID") %>% 
-  mutate(urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_sani)
+  mutate(
+    urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_sani
+  )
 
 urban.score$year <- as.factor(urban.score$year)
 urban.score$urban_flag <- as.factor(urban.score$urban_nbs)
@@ -42,15 +40,22 @@ urban.score %>%
 ```
 
 ```{r}
-ggplot(urban.score, aes(x = urban_score)) + 
-  geom_density(aes(fill=year), alpha=0.7) + 
-  scale_x_continuous(breaks = seq(0,50,5), limits=c(0,40)) +
+ggplot(urban.score, aes(x = urban_score, color=year)) + 
+  geom_density(size=0.7) + 
+  scale_x_continuous(breaks = seq(0,50,5), limits=c(0,50)) +
   labs(
     x = "Score",
     y = "Density",
     fill = "Year"
   ) + 
-  theme_light()
+  ylim(c(0,0.075)) +
+  scale_color_manual(values = c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
+  theme_minimal() + 
+  theme(
+    legend.title = element_blank(),
+    legend.position = "bottom",
+    aspect.ratio = 1
+  )
 ```
 
 ## Exploratory Factor Analysis
@@ -58,7 +63,6 @@ ggplot(urban.score, aes(x = urban_score)) +
 items <- urban.score %>% 
   select(urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani) %>% 
   rename(Communications = urban_score_comm, Housing = urban_score_house, Economy = urban_score_econ, Sanitation = urban_score_sani)
-
 
 # items.fa <- factanal(items, factors = 1, rotation = "varimax", scores = "regression")
 items.cor <- cor(items)
@@ -75,21 +79,28 @@ ggplot(items.eig, aes(x = factors, y = eigen_values)) +
   geom_text(aes(label = round(eigen_values, 2)), vjust = -1) +
   geom_line(aes(x = idx, y = eigen_values)) + 
   geom_hline(yintercept = 1, linetype = 'dashed') +
-  ylim(0, 3.2) +
+  ylim(0,4) +
   labs(x="Factors", y="Eigenvalue") + 
-  theme_light()
+  theme_minimal() + 
+  theme(
+    aspect.ratio = 1
+  )
 ```
 
 
 ```{r}
 res.pca <- PCA(items, graph=F)
+
+summary(res.pca$scores[,1] + 5)
+
 fviz_screeplot(res.pca, addlabels = TRUE, ylim = c(0, 80))
 
 # Control variable colors using their contributions
-fviz_pca_var(res.pca, col.var="contrib",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE # Avoid text overlapping
-             )
+fviz_pca_var(
+  res.pca, col.var="contrib",
+  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+  repel = TRUE # Avoid text overlapping
+)
 ```
 
 ## Cronbachs Alpha
@@ -100,7 +111,6 @@ urban.score.2011 <- urban.score %>%
     urban_score_comm,
     urban_score_house,
     urban_score_econ,
-    urban_score_div,
     urban_score_sani
   )
 
@@ -110,7 +120,6 @@ urban.score.2013 <- urban.score %>%
     urban_score_comm,
     urban_score_house,
     urban_score_econ,
-    urban_score_div,
     urban_score_sani
   )
 
@@ -120,7 +129,6 @@ urban.score.2015 <- urban.score %>%
     urban_score_comm,
     urban_score_house,
     urban_score_econ,
-    urban_score_div,
     urban_score_sani
   )
   
@@ -130,7 +138,6 @@ urban.score.2018 <- urban.score %>%
     urban_score_comm,
     urban_score_house,
     urban_score_econ,
-    urban_score_div,
     urban_score_sani
   )
 ```
@@ -150,36 +157,6 @@ multilevel::item.total(urban.score.2015)
 multilevel::item.total(urban.score.2018)
 ```
 
-## Reciever Operator Characteristics
-```{r}
-library(plotROC)
-urban.score.2011$communityID <- comm %>% filter(year == 2011) %>% pull(communityID)
-items2 <- urban.score.2011 %>% 
-  left_join(select(psu, communityID, urban_nbs), by="communityID") %>%
-  mutate(urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_sani)
-```
-
-```{r fig.width = 4.7, fig.height = 4.7}
-ggplot(items2, aes(d = urban_nbs, m = urban_score)) + 
-  geom_roc() + 
-  style_roc() + 
-  theme(text = element_text(size=16))
-```
-
-```{r}
-threshold <- 14.7
-
-urban_flag <- items2 %>% 
-  mutate(urban_flag = ifelse(urban_score >= threshold, 1, 0)) %>% 
-  pull(urban_flag)
-
-urban_nbs <- as.numeric(items2$urban_nbs)
-```
-
-```{r}
-item2.kappa <- psych::cohen.kappa(cbind(urban_flag, urban_nbs))
-item2.kappa$kappa
-```
 
 ## Correlation with community variable constructed scale
 ```{r message=FALSE}
@@ -191,14 +168,17 @@ score.df <- community.score %>%
   left_join(individual.score, by="communityID", suffix = c("_com", "_ind")) %>%
   drop_na()
 
-ggplot(score.df, aes(y=urban_score_com, x=urban_score_ind)) + 
+ggplot(score.df, aes(y=urban_score_com/6, x=urban_score_ind/4)) + 
   geom_point() + 
   geom_smooth(method = lm) + 
   labs(
     y = "Community",
     x = "Aggregated Individual"
   ) +
-  theme_light()
+  theme_minimal() + 
+  theme(
+    aspect.ratio = 1
+  )
 ```
 
 Examine the outliers
@@ -229,6 +209,9 @@ summary(mod)
 cor.test(score.df$urban_score_com, score.df$urban_score_ind)
 ```
 
+```{r}
+summary(glm(urban_flag ~ urban_score, data = urban.score, family = "binomial"))
+```
 
 
 

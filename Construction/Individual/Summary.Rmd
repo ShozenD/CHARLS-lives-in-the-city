@@ -1,0 +1,112 @@
+---
+title: "Summary"
+author: "Shozen Dan"
+date: "1/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message = F}
+# Import library
+library(tidyverse)
+```
+
+```{r message=FALSE}
+# Import Scores
+comm <- read_csv("../../Scores/Individual/communication.csv")
+house <- read_csv("../../Scores/Individual/housing.csv")
+econ <- read_csv("../../Scores/Individual/economic.csv")
+sani <- read_csv("../../Scores/Individual/sanitation.csv")
+psu <- read_dta("../../data/PSU.dta") %>% 
+  dplyr::select(communityID, province_eng, city_eng, urban_nbs)
+
+# join data frames
+urban.score <- comm %>% 
+  left_join(house, by=c("communityID","year")) %>% 
+  left_join(econ, by=c("communityID","year")) %>% 
+  left_join(sani, by=c("communityID","year")) %>% 
+  left_join(psu, by="communityID") %>% 
+  mutate(urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_sani)
+
+urban.score$year <- as.factor(urban.score$year)
+urban.score$urban_flag <- as.factor(urban.score$urban_nbs)
+
+urban.score %>% 
+  select(communityID, year, urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani, urban_score) %>% 
+  write_csv("../../Scores/Individual/urbanicity.csv")
+```
+
+## Table
+```{r}
+# Economic Activity
+econ %>%
+  summarise(
+    avg = mean(urban_score_econ),
+    sd = sd(urban_score_econ),
+    med = median(urban_score_econ),
+    IQR.lower = quantile(urban_score_econ, prob=.25),
+    IQR.upper = quantile(urban_score_econ, prob=.75),
+    min = min(urban_score_econ),
+    max = max(urban_score_econ)
+  )
+```
+
+```{r}
+# Housing
+house %>%
+  summarise(
+    avg = mean(urban_score_house),
+    sd = sd(urban_score_house),
+    med = median(urban_score_house),
+    IQR.lower = quantile(urban_score_house, prob=.25),
+    IQR.upper = quantile(urban_score_house, prob=.75),
+    min = min(urban_score_house),
+    max = max(urban_score_house)
+  )
+```
+
+```{r}
+# Saanitation 
+sani %>%
+  summarise(
+    avg = mean(urban_score_sani),
+    sd = sd(urban_score_sani),
+    med = median(urban_score_sani),
+    IQR.lower = quantile(urban_score_sani, prob=.25),
+    IQR.upper = quantile(urban_score_sani, prob=.75),
+    min = min(urban_score_sani),
+    max = max(urban_score_sani)
+  )
+```
+
+```{r}
+# Commnications
+comm %>%
+  summarise(
+    avg = mean(urban_score_comm),
+    sd = sd(urban_score_comm),
+    med = median(urban_score_comm),
+    IQR.lower = quantile(urban_score_comm, prob=.25),
+    IQR.upper = quantile(urban_score_comm, prob=.75),
+    min = min(urban_score_comm),
+    max = max(urban_score_comm)
+  )
+```
+
+```{r}
+# Overall
+urban.score %>% 
+  summarise(
+    avg = mean(urban_score),
+    sd = sd(urban_score),
+    med = median(urban_score),
+    IQR.lower = quantile(urban_score, prob=.25),
+    IQR.upper = quantile(urban_score, prob=.75),
+    min = min(urban_score),
+    max = max(urban_score)
+  )
+```
+

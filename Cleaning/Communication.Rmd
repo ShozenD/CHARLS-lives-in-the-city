@@ -1,0 +1,81 @@
+---
+title: "Clean: Communication"
+author: "Shozen Dan"
+date: "1/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(haven)
+```
+
+```{r}
+house.2011 <- read_dta("../data/Housing_Characteristics_2011.dta")
+house.2013 <- read_dta("../data/Housing_Characteristics_2013.dta")
+house.2015 <- read_dta("../data/Housing_Characteristics_2015.dta")
+house.2018 <- read_dta("../data/Housing_Characteristics_2018.dta")
+```
+
+```{r, message=FALSE}
+comm.2011 <- house.2011 %>% 
+  select(communityID, householdID, i023, i024) %>% 
+  rename(
+    telephone = i023,
+    internet = i024
+  ) %>% 
+  mutate(
+    year = 2011,
+    householdID = str_c(householdID,"0")
+  )
+
+comm.2013 <- house.2013 %>% 
+  select(communityID, householdID, i023, i024) %>% 
+  rename(
+    telephone = i023,
+    internet = i024
+  ) %>% 
+  mutate(
+    year = 2013,
+    householdID = str_c(householdID,"0")
+  )
+
+comm.2015 <- house.2015 %>% 
+  select(communityID, householdID, i023, i024) %>% 
+  rename(
+    telephone = i023,
+    internet = i024
+  ) %>% 
+  mutate(
+    year = 2015,
+    householdID = str_c(householdID,"0")
+  )
+
+comm.2018 <- house.2018 %>% 
+  select(communityID, householdID, i023, i024) %>% 
+  rename(
+    telephone = i023,
+    internet = i024
+  ) %>% 
+  mutate(
+    year = 2018,
+    householdID = str_c(householdID,"0")
+  )
+
+comm.clean <- rbind(comm.2011, comm.2013, comm.2015, comm.2018)
+
+
+sum(is.na(comm.clean$internet))/nrow(comm.clean)
+
+comm.clean <- comm.clean %>% 
+  arrange(communityID, householdID) %>%
+  group_by(communityID, householdID) %>%
+  fill(telephone, internet, .direction = "downup")
+
+write_csv(comm.clean, '../data/cleaned/communication_cleaned.csv')
+```
+

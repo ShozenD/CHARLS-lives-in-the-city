@@ -60,6 +60,8 @@ for(i in 1:length(electricity.mis.id)){
   electricity[electricity$communityID == electricity.mis.id[i], "electric_timing"] <- score
 }
 
+length(electricity.mis.id)
+
 summary(electricity$electric_timing) # check for NA
 ```
 
@@ -80,6 +82,22 @@ water <- community %>%
     water_spring = jb006_7,
     water_other = jb006_8
   )
+
+no.na <- water %>% 
+  select(starts_with('water')) %>% 
+  drop_na() %>% 
+  filter(
+    water_tap != 999,
+    water_well != 999,
+    water_pool != 999,
+    water_river_lakes != 999,
+    water_rain_snow != 999,
+    water_cellar != 999,
+    water_spring != 999,
+    water_other != 999
+  ) %>% nrow()
+
+(nrow(community) - no.na)/nrow(community)
 
 water <- water %>% 
   replace_na( # Assume NA as 0
@@ -120,6 +138,8 @@ water.mis.id <- water %>%
   filter(is.na(tap_water)) %>% 
   pull(communityID)
 
+length(water.mis.id)/N
+
 water.proxy <- water %>% 
   group_by(city_eng) %>%
   summarise(score = mean(tap_water, na.rm = TRUE))
@@ -129,6 +149,8 @@ for(i in 1:length(water.mis.id)){
   water_type <- water.proxy %>% filter(city_eng == city_name) %>% pull(score)
   water[water$communityID == water.mis.id[i], "tap_water"] <- water_type
 }
+
+length(water.mis.id)
 
 summary(water$tap_water) # check NA
 ```
@@ -148,6 +170,20 @@ fuel <- community %>%
     fuel_lpg = jb007_5,
     fuel_other = jb007_6
   )
+
+no.na <- fuel %>% 
+  select(starts_with('fuel')) %>% 
+  drop_na() %>% 
+  filter(
+    fuel_hay != 999,
+    fuel_coal != 999,
+    fuel_marsh_gas != 999,
+    fuel_natural_gas != 999,
+    fuel_lpg != 999,
+    fuel_other != 999
+  ) %>% nrow()
+
+(N - no.na)/N
 
 fuel <- fuel %>% 
   replace_na(
@@ -183,6 +219,8 @@ fuel <- fuel %>%
 fuel.mis.id <- fuel %>% 
   filter(is.na(cooking_fuel)) %>% 
   pull(communityID)
+
+length(fuel.mis.id)/N
 
 fuel.proxy <- fuel %>% 
   group_by(city_eng) %>%
