@@ -29,6 +29,11 @@ urban.score.comm <- house.clean %>%
     urban_score_comm = 10*(prop_internet)
   ) %>% 
   select(communityID, year, urban_score_comm)
+
+mean(house.clean[house.clean$year == 2011,]$internet == 1, na.rm=T)
+mean(house.clean[house.clean$year == 2018,]$internet == 1, na.rm=T)
+
+45 - 16.4
 ```
 
 ## Imputation

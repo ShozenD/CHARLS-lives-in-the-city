@@ -20,22 +20,22 @@ econ <- read_csv("../../Scores/Individual/economic.csv")
 sani <- read_csv("../../Scores/Individual/sanitation.csv")
 psu <- read_dta("../../data/PSU.dta") %>% 
   dplyr::select(communityID, province_eng, city_eng, urban_nbs)
+reliability <- read_csv("../../Scores/Individual/reliability.csv")
 
 # join data frames
 urban.score <- comm %>% 
   left_join(house, by=c("communityID","year")) %>% 
   left_join(econ, by=c("communityID","year")) %>% 
   left_join(sani, by=c("communityID","year")) %>%
+  left_join(reliability, by=c("communityID","year")) %>%
   left_join(psu, by="communityID") %>% 
-  mutate(
-    urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_sani
-  )
+  mutate(urban_score = urban_score_comm + urban_score_house + urban_score_econ + urban_score_sani)
 
 urban.score$year <- as.factor(urban.score$year)
 urban.score$urban_flag <- as.factor(urban.score$urban_nbs)
 
 urban.score %>% 
-  select(communityID, year, urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani, urban_score) %>% 
+  select(communityID, year, urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani, urban_score, reliability) %>% 
   write_csv("../../Scores/Individual/urbanicity.csv")
 ```
 
@@ -61,6 +61,7 @@ ggplot(urban.score, aes(x = urban_score, color=year)) +
 ## Exploratory Factor Analysis
 ```{r}
 items <- urban.score %>% 
+  filter(reliability != "Poor") %>% 
   select(urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani) %>% 
   rename(Communications = urban_score_comm, Housing = urban_score_house, Economy = urban_score_econ, Sanitation = urban_score_sani)
 
@@ -91,14 +92,10 @@ ggplot(items.eig, aes(x = factors, y = eigen_values)) +
 ```{r}
 res.pca <- PCA(items, graph=F)
 
-summary(res.pca$scores[,1] + 5)
-
-fviz_screeplot(res.pca, addlabels = TRUE, ylim = c(0, 80))
-
 # Control variable colors using their contributions
 fviz_pca_var(
-  res.pca, col.var="contrib",
-  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+  res.pca,
+  # gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
   repel = TRUE # Avoid text overlapping
 )
 ```
@@ -106,7 +103,7 @@ fviz_pca_var(
 ## Cronbachs Alpha
 ```{r}
 urban.score.2011 <- urban.score %>% 
-  filter(year == "2011") %>%
+  filter(year == "2011", reliability != "Poor") %>%
   dplyr::select(
     urban_score_comm,
     urban_score_house,
@@ -115,7 +112,7 @@ urban.score.2011 <- urban.score %>%
   )
 
 urban.score.2013 <- urban.score %>% 
-  filter(year == "2013") %>%
+  filter(year == "2013", reliability != "Poor") %>%
   dplyr::select( 
     urban_score_comm,
     urban_score_house,
@@ -124,7 +121,7 @@ urban.score.2013 <- urban.score %>%
   )
 
 urban.score.2015 <- urban.score %>% 
-  filter(year == "2015") %>%
+  filter(year == "2015", reliability != "Poor") %>%
   dplyr::select(
     urban_score_comm,
     urban_score_house,
@@ -133,7 +130,7 @@ urban.score.2015 <- urban.score %>%
   )
   
 urban.score.2018 <- urban.score %>% 
-  filter(year == "2018") %>%
+  filter(year == "2018", reliability != "Poor") %>%
   dplyr::select(
     urban_score_comm,
     urban_score_house,
@@ -156,63 +153,3 @@ multilevel::item.total(urban.score.2013)
 multilevel::item.total(urban.score.2015)
 multilevel::item.total(urban.score.2018)
 ```
-
-
-## Correlation with community variable constructed scale
-```{r message=FALSE}
-community.score <- read_csv("../../Scores/Community/urbanicity.csv")
-individual.score <- urban.score.2011 %>% 
-  mutate(urban_score = urban_score_comm+urban_score_house+urban_score_econ+urban_score_sani)
-
-score.df <- community.score %>%
-  left_join(individual.score, by="communityID", suffix = c("_com", "_ind")) %>%
-  drop_na()
-
-ggplot(score.df, aes(y=urban_score_com/6, x=urban_score_ind/4)) + 
-  geom_point() + 
-  geom_smooth(method = lm) + 
-  labs(
-    y = "Community",
-    x = "Aggregated Individual"
-  ) +
-  theme_minimal() + 
-  theme(
-    aspect.ratio = 1
-  )
-```
-
-Examine the outliers
-```{r}
-score.df %>%
-  filter(urban_score_com <15 & urban_score_ind > 12) %>%
-  left_join(psu, by = "communityID") %>%
-  select(province_eng, city_eng)
-
-score.df %>%
-  left_join(psu, by = "communityID") %>%
-  filter(urban_score_ind < 11 & urban_score_com < 15) %>% 
-  select(province_eng, city_eng)
-
-score.df %>%
-  left_join(psu, by = "communityID") %>%
-  filter(urban_score_ind > 10 & urban_score_ind < 11 & urban_score_com > 37) %>% 
-  select(province_eng, city_eng, urban_score_ind)
-```
-
-
-```{r}
-mod <- lm(urban_score_com ~ urban_score_ind, score.df)
-summary(mod)
-```
-
-```{r}
-cor.test(score.df$urban_score_com, score.df$urban_score_ind)
-```
-
-```{r}
-summary(glm(urban_flag ~ urban_score, data = urban.score, family = "binomial"))
-```
-
-
-
-

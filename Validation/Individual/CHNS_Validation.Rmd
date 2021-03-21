@@ -14,8 +14,18 @@ library(haven)
 chns <- read_sas('~/Downloads/Master_UrbanIndex_201804/urban_11.sas7bdat')
 psu <- read_dta("../../data/PSU.dta") %>% 
   dplyr::select(communityID, province_eng, city_eng, urban_nbs)
-charls <- read_csv('../../Scores/Individual/urbanicity_weighted.csv') %>% 
+charls <- read_csv('../../Scores/Individual/urbanicity.csv') %>% 
+  filter(reliability %in% c("Good", "Excellent")) %>%
   left_join(psu, by="communityID")
+
+charls %>% 
+  filter(province_eng %in% c("Henan", "Heilongjiang")) %>% 
+  group_by(province_eng) %>% 
+  summarise(
+    urban_nbs = mean(urban_nbs)
+  )
+
+# write_csv(charls, "~/Desktop/charls.csv")
 ```
 
 ```{r}
@@ -36,6 +46,13 @@ chns <- chns %>%
       T1 == 52 ~ "Guizhou",
       T1 == 55 ~ "Chongqing"
     )
+  )
+
+chns %>% 
+  filter(province_eng %in% c("Henan", "Heilongjiang")) %>% 
+  group_by(province_eng) %>%
+  summarise(
+    T2 = mean(T2)
   )
 ```
 

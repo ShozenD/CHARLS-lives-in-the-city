@@ -45,6 +45,7 @@ roc.unwgt <- df.ubs.2011 %>%
 
 th.best.unwgt <- roc.unwgt[which.max(roc.unwgt$accuracy),1] # Find best threshold
 
+roc.unwgt[which.max(roc.unwgt$accuracy),]
 # Get AUC
 calc_auc(plt.unwgt)
 

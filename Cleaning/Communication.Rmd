@@ -40,8 +40,7 @@ comm.2013 <- house.2013 %>%
     internet = i024
   ) %>% 
   mutate(
-    year = 2013,
-    householdID = str_c(householdID,"0")
+    year = 2013
   )
 
 comm.2015 <- house.2015 %>% 
@@ -51,8 +50,7 @@ comm.2015 <- house.2015 %>%
     internet = i024
   ) %>% 
   mutate(
-    year = 2015,
-    householdID = str_c(householdID,"0")
+    year = 2015
   )
 
 comm.2018 <- house.2018 %>% 
@@ -62,11 +60,13 @@ comm.2018 <- house.2018 %>%
     internet = i024
   ) %>% 
   mutate(
-    year = 2018,
-    householdID = str_c(householdID,"0")
+    year = 2018
   )
 
 comm.clean <- rbind(comm.2011, comm.2013, comm.2015, comm.2018)
+
+comm.clean %>%
+  filter(communityID == "1511562")
 
 
 sum(is.na(comm.clean$internet))/nrow(comm.clean)
@@ -75,6 +75,8 @@ comm.clean <- comm.clean %>%
   arrange(communityID, householdID) %>%
   group_by(communityID, householdID) %>%
   fill(telephone, internet, .direction = "downup")
+
+comm.clean 
 
 write_csv(comm.clean, '../data/cleaned/communication_cleaned.csv')
 ```

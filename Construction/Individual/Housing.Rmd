@@ -31,6 +31,8 @@ urban.score.house <- house.clean %>%
 
 urban.score.house[is.na(urban.score.house)] <- NA
 
+psych::describe.by(urban.score.house, "year")
+
 urban.score.house <- urban.score.house %>%
   group_by(communityID) %>%
   fill(prop_concrete_house, prop_electric, prop_running_water, prop_cooking_gas, .direction = "downup") %>%
@@ -41,10 +43,23 @@ urban.score.house <- urban.score.house %>%
   select(communityID, year, urban_score_house)
 ```
 
-## Imputation
-```{r, imputation}
-summary(urban.score.house$urban_score_house)
+```{r}
+ggplot(urban.score.house, aes(x = prop_cooking_gas, color=factor(year))) + 
+  geom_density(size=0.7) + 
+  # scale_x_continuous(limits = c(0,2)) +
+  labs(
+    x = "Score",
+    y = "Density"
+  ) + 
+  # ylim(c(0,0.35)) +
+  theme_minimal() + 
+  scale_color_manual(values = c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
+  theme(
+    legend.title = element_blank(),
+    aspect.ratio = 1
+  )
 ```
+
 
 ```{r}
 ggplot(urban.score.house, aes(x = urban_score_house, color=factor(year))) + 

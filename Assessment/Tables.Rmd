@@ -10,13 +10,14 @@ library(tidyverse)
 ```
 
 ```{r}
-df.ubs <- read_csv("../Scores/Individual/urbanicity.csv")
+df.ubs <- read_csv("../Scores/Individual/urbanicity.csv") %>% filter(reliability != "Poor")
 head(df.ubs)
 ```
 
 ```{r}
 # Perform PCA
 items <- df.ubs %>% 
+  filter(reliability != "Poor") %>%
   select(urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani)
 
 res.pca <- princomp(items)
@@ -36,7 +37,7 @@ df.ubs$urban_score_sani_wgt <- df.ubs$urban_score_sani * loadings[4]
 psych::describe(df.ubs)
 
 # Summary statistics by year
-psych::describeBy(df.ubs, "year")
+psych::describeBy(df.ubs, "year", IQR=T)
 
 ## Weighted
 psych::describe(select(df.ubs,ends_with("wgt"),weighted))
