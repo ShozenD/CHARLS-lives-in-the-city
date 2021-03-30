@@ -11,29 +11,65 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, message=FALSE}
 library(tidyverse)
+library(haven)
+library(survey)
+library(docstring)
 ```
 
 ## Communications
 ```{r message=FALSE}
-house.clean <- read_csv("../../data/cleaned/communication_cleaned.csv")
+comm.clean <- read_csv("../../data/cleaned/communication_cleaned.csv")
+
+weight.2011 <- read_dta("../../data/Weights_2011.dta") %>%
+  mutate(householdID = str_c(householdID,"0")) %>% 
+  select(communityID, householdID, HH_weight_ad1, iyear) %>%
+  rename(year = iyear) %>% 
+  mutate(year = as.numeric(year))
+weight.2013 <- read_dta("../../data/Weights_2013.dta") %>%
+  select(communityID, householdID, HH_weight_ad1, iyear) %>% 
+  rename(year = iyear) %>% 
+  mutate(year = as.numeric(year))
+weight.2015 <- read_dta("../../data/Weights_2015.dta") %>%
+  select(communityID, householdID, HH_weight_ad1) %>% 
+  mutate(year = 2015)
+weight.2018 <- read_dta("../../data/Weights_2018.dta") %>%
+  select(communityID, householdID, HH_weight_ad1) %>% 
+  mutate(year = 2018)
+
+weights <- rbind(weight.2011, weight.2013, weight.2015, weight.2018)
+
+comm.clean <- comm.clean %>% left_join(weights, by=c("communityID", "householdID", "year"))
 ```
 
 ```{r, message=FALSE}
-urban.score.comm <- house.clean %>% 
-  group_by(year, communityID) %>% 
-  summarise(
-    prop_telephone = mean(telephone == 1, na.rm = T),
-    prop_internet = mean(internet == 1, na.rm = T)
-  ) %>% 
+urban.score.comm <- comm.clean %>% 
   mutate(
-    urban_score_comm = 10*(prop_internet)
-  ) %>% 
-  select(communityID, year, urban_score_comm)
+    telephone = ifelse(telephone == 1,1,0),
+    internet = ifelse(internet == 1,1,0),
+    tv = ifelse(tv == 1,1,0),
+    computer = ifelse(computer == 1,1,0),
+    mobile = ifelse(mobile == 1,1,0),
+    comm_score = 10*(internet + tv + computer + mobile)/4
+  )
 
-mean(house.clean[house.clean$year == 2011,]$internet == 1, na.rm=T)
-mean(house.clean[house.clean$year == 2018,]$internet == 1, na.rm=T)
+apply.weight <- function(data, y){
+  #' Applies survey weights to calculate mean score
+  #'
+  #' @param data
+  #' @param year
+  
+  data <- data %>% filter(year == y) %>% drop_na(HH_weight_ad1)
+  design <- svydesign(id=~communityID+householdID, weights=~HH_weight_ad1, data = data)
+  svyby(~comm_score, ~communityID, design = design, svymean) %>% mutate(year = y)
+}
 
-45 - 16.4
+comm.2011 <- apply.weight(urban.score.comm, 2011)
+comm.2013 <- apply.weight(urban.score.comm, 2013)
+comm.2015 <- apply.weight(urban.score.comm, 2015)
+comm.2018 <- apply.weight(urban.score.comm, 2018)
+
+urban.score.comm <- rbind(comm.2011, comm.2013, comm.2015, comm.2018) %>% 
+  rename(urban_score_comm = comm_score)
 ```
 
 ## Imputation
@@ -49,7 +85,7 @@ ggplot(urban.score.comm, aes(x = urban_score_comm, color=factor(year))) +
     x = "Score",
     y = "Density"
   ) + 
-  ylim(c(0,0.31)) +
+  # ylim(c(0,0.4)) +
   scale_color_manual(values = c("#003f5c", "#7a5195", "#ef5675", "#ffa600")) +
   theme_minimal() + 
   theme(

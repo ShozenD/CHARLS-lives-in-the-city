@@ -10,8 +10,10 @@ library(tidyverse)
 library(haven)
 library(FactoMineR)
 library(factoextra)
+library(docstring)
 ```
 
+## Load Data
 ```{r, message=FALSE}
 # read files
 comm <- read_csv("../../Scores/Individual/communication.csv")
@@ -34,11 +36,21 @@ urban.score <- comm %>%
 urban.score$year <- as.factor(urban.score$year)
 urban.score$urban_flag <- as.factor(urban.score$urban_nbs)
 
+# Combine score into a single CSV file
 urban.score %>% 
-  select(communityID, year, urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani, urban_score, reliability) %>% 
+  select(communityID, year,
+         province_eng,
+         city_eng,
+         urban_score_comm, 
+         urban_score_house, 
+         urban_score_econ, 
+         urban_score_sani, 
+         urban_score, 
+         reliability) %>% 
   write_csv("../../Scores/Individual/urbanicity.csv")
 ```
 
+## Overall Distribution
 ```{r}
 ggplot(urban.score, aes(x = urban_score, color=year)) + 
   geom_density(size=0.7) + 
@@ -62,8 +74,18 @@ ggplot(urban.score, aes(x = urban_score, color=year)) +
 ```{r}
 items <- urban.score %>% 
   filter(reliability != "Poor") %>% 
-  select(urban_score_comm, urban_score_house, urban_score_econ, urban_score_sani) %>% 
-  rename(Communications = urban_score_comm, Housing = urban_score_house, Economy = urban_score_econ, Sanitation = urban_score_sani)
+  select(
+    urban_score_comm, 
+    urban_score_house, 
+    urban_score_econ, 
+    urban_score_sani
+  ) %>% 
+  rename(
+    Communications = urban_score_comm, 
+    Housing = urban_score_house, 
+    Economy = urban_score_econ, 
+    Sanitation = urban_score_sani
+  )
 
 # items.fa <- factanal(items, factors = 1, rotation = "varimax", scores = "regression")
 items.cor <- cor(items)
@@ -102,54 +124,42 @@ fviz_pca_var(
 
 ## Cronbachs Alpha
 ```{r}
-urban.score.2011 <- urban.score %>% 
-  filter(year == "2011", reliability != "Poor") %>%
-  dplyr::select(
-    urban_score_comm,
-    urban_score_house,
-    urban_score_econ,
-    urban_score_sani
-  )
-
-urban.score.2013 <- urban.score %>% 
-  filter(year == "2013", reliability != "Poor") %>%
-  dplyr::select( 
-    urban_score_comm,
-    urban_score_house,
-    urban_score_econ,
-    urban_score_sani
-  )
-
-urban.score.2015 <- urban.score %>% 
-  filter(year == "2015", reliability != "Poor") %>%
-  dplyr::select(
-    urban_score_comm,
-    urban_score_house,
-    urban_score_econ,
-    urban_score_sani
-  )
+test.cronbachs.alpha <- function(data, y, r){
+  #' Compute the cronbachs alpha scores for a specified year of the dataset
+  #'
+  #' @param data DataFrame containing scores for all years
+  #' @param y The year of interest (String)
+  #' @param r Reliablity threshold (Poor, Good)
   
-urban.score.2018 <- urban.score %>% 
-  filter(year == "2018", reliability != "Poor") %>%
-  dplyr::select(
-    urban_score_comm,
-    urban_score_house,
-    urban_score_econ,
-    urban_score_sani
-  )
-```
+  data %>% 
+    filter(year == y, reliability != r) %>%
+    dplyr::select(starts_with("urban_score_")) %>% 
+    ltm::cronbach.alpha(na.rm = TRUE)
+}
 
-```{r}
-ltm::cronbach.alpha(urban.score.2011, na.rm=TRUE)
-ltm::cronbach.alpha(urban.score.2013, na.rm=TRUE)
-ltm::cronbach.alpha(urban.score.2015, na.rm=TRUE)
-ltm::cronbach.alpha(urban.score.2018, na.rm=TRUE)
+test.cronbachs.alpha(urban.score, 2011, "Poor")
+test.cronbachs.alpha(urban.score, 2013, "Poor")
+test.cronbachs.alpha(urban.score, 2015, "Poor")
+test.cronbachs.alpha(urban.score, 2018, "Poor")
 ```
 
 ## Item-Scale Correlation
 ```{r}
-multilevel::item.total(urban.score.2011)
-multilevel::item.total(urban.score.2013)
-multilevel::item.total(urban.score.2015)
-multilevel::item.total(urban.score.2018)
+test.item.scale <- function(data, y, r){
+  #' Compute the cronbachs alpha scores for a specified year of the dataset
+  #'
+  #' @param data DataFrame containing scores for all years
+  #' @param y The year of interest (String)
+  #' @param r Reliablity threshold (Poor, Good)
+  
+  data %>% 
+    filter(year == y, reliability != r) %>%
+    dplyr::select(starts_with("urban_score_")) %>% 
+    multilevel::item.total()
+}
+
+test.item.scale(urban.score, 2011, "Poor")
+test.item.scale(urban.score, 2013, "Poor")
+test.item.scale(urban.score, 2015, "Poor")
+test.item.scale(urban.score, 2018, "Poor")
 ```

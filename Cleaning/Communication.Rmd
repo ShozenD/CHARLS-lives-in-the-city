@@ -15,69 +15,106 @@ library(haven)
 ```
 
 ```{r}
+## Housing Characteristics
 house.2011 <- read_dta("../data/Housing_Characteristics_2011.dta")
 house.2013 <- read_dta("../data/Housing_Characteristics_2013.dta")
 house.2015 <- read_dta("../data/Housing_Characteristics_2015.dta")
 house.2018 <- read_dta("../data/Housing_Characteristics_2018.dta")
+
+## Health Status and Functioning
+health.2011 <- read_dta("../data/Health_Status_and_Functioning_2011.dta")
+health.2013 <- read_dta("../data/Health_Status_and_Functioning_2013.dta")
+health.2015 <- read_dta("../data/Health_Status_and_Functioning_2015.dta")
+health.2018 <- read_dta("../data/Health_Status_and_Functioning_2018.dta")
+
+## Income Expenditure and Assets
+income.2011 <- read_dta("../data/Household_Income_2011.dta")
+income.2013 <- read_dta("../data/Household_Income_2013.dta")
+income.2015 <- read_dta("../data/Household_Income_2015.dta")
+income.2018 <- read_dta("../data/Household_Income_2018.dta")
 ```
 
 ```{r, message=FALSE}
 comm.2011 <- house.2011 %>% 
-  select(communityID, householdID, i023, i024) %>% 
+  left_join(health.2011, by=c("householdID", "communityID")) %>% 
+  left_join(income.2011, by=c("householdID", "communityID")) %>%
+  select(communityID, householdID, i023, i024, ha065s6, ha065s7, ha065s12) %>% 
   rename(
     telephone = i023,
+    tv = ha065s6,
+    computer = ha065s7,
+    mobile = ha065s12,
     internet = i024
   ) %>% 
   mutate(
     year = 2011,
+    tv = case_when(is.na(tv) ~ 2, TRUE ~ 1),
+    computer = case_when(is.na(computer) ~ 2, TRUE ~ 1),
+    mobile = case_when(is.na(mobile) ~ 2, TRUE ~ 1),
+    internet = case_when(is.na(internet) ~ 0, TRUE ~ 1),
     householdID = str_c(householdID,"0")
   )
 
 comm.2013 <- house.2013 %>% 
-  select(communityID, householdID, i023, i024) %>% 
+  left_join(health.2013, by=c("householdID", "communityID")) %>%
+  left_join(income.2013, by=c("householdID", "communityID")) %>%
+  select(communityID, householdID, i023, i024, ha065s6, ha065s7, ha065s12) %>% 
   rename(
     telephone = i023,
+    tv = ha065s6,
+    computer = ha065s7,
+    mobile = ha065s12,
     internet = i024
   ) %>% 
   mutate(
+    tv = case_when(is.na(tv) ~ 2, TRUE ~ 1),
+    computer = case_when(is.na(computer) ~ 2, TRUE ~ 1),
+    mobile = case_when(is.na(mobile) ~ 2, TRUE ~ 1),
+    internet = case_when(is.na(internet) ~ 0, TRUE ~ 1),
     year = 2013
   )
 
 comm.2015 <- house.2015 %>% 
-  select(communityID, householdID, i023, i024) %>% 
+  left_join(health.2015, by=c("householdID", "communityID")) %>%
+  left_join(income.2015, by=c("householdID", "communityID")) %>%
+  select(communityID, householdID, i023, i024, ha065s6, ha065s7, ha065s12) %>% 
   rename(
     telephone = i023,
+    tv = ha065s6,
+    computer = ha065s7,
+    mobile = ha065s12,
     internet = i024
   ) %>% 
   mutate(
+    tv = case_when(is.na(tv) ~ 2, TRUE ~ 1),
+    computer = case_when(is.na(computer) ~ 2, TRUE ~ 1),
+    mobile = case_when(is.na(mobile) ~ 2, TRUE ~ 1),
+    internet = case_when(is.na(internet) ~ 0, TRUE ~ 1),
     year = 2015
   )
 
 comm.2018 <- house.2018 %>% 
-  select(communityID, householdID, i023, i024) %>% 
+  left_join(health.2018, by=c("householdID", "communityID")) %>%
+  left_join(income.2018, by=c("householdID", "communityID")) %>%
+  select(communityID, householdID, i023, i024, ha065_s6, ha065_s7, ha065_s12) %>% 
   rename(
     telephone = i023,
+    tv = ha065_s6,
+    computer = ha065_s7,
+    mobile = ha065_s12,
     internet = i024
   ) %>% 
   mutate(
+    tv = case_when(tv == 6 ~ 1, TRUE ~ 0),
+    computer = case_when(computer == 7 ~ 1, TRUE ~ 0),
+    mobile = case_when(mobile == 12 ~ 1, TRUE ~ 0),
+    internet = case_when(is.na(internet) ~ 0, TRUE ~ 1),
     year = 2018
   )
 
 comm.clean <- rbind(comm.2011, comm.2013, comm.2015, comm.2018)
 
-comm.clean %>%
-  filter(communityID == "1511562")
-
-
-sum(is.na(comm.clean$internet))/nrow(comm.clean)
-
-comm.clean <- comm.clean %>% 
-  arrange(communityID, householdID) %>%
-  group_by(communityID, householdID) %>%
-  fill(telephone, internet, .direction = "downup")
-
-comm.clean 
-
 write_csv(comm.clean, '../data/cleaned/communication_cleaned.csv')
 ```
+
 

@@ -22,14 +22,6 @@ house.2018 <- read_dta("../data/Housing_Characteristics_2018.dta")
 ```
 
 ```{r}
-house.2011$i004
-house.2013$i017
-house.2011$i016
-house.2011$i022
-```
-
-
-```{r}
 house.clean.2011 <- house.2011 %>% 
   select(communityID, householdID, i004, i016, i017, i022) %>%
   mutate(
